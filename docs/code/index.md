@@ -12,6 +12,8 @@
 - [ADR 0001: Supabase как бэкенд](adr/0001-supabase-as-the-backend.md)
 - [ADR 0002: Одна правка — одна строка](adr/0002-one-edit-one-row.md)
 - [ADR 0003: Ориентир не управляет порядком](adr/0003-target-date-does-not-drive-order.md)
+- [ADR 0004: Сторис — это выпуск, и у неё две оси](adr/0004-a-story-is-an-issue-with-two-axes.md)
+- [ADR 0005: Актуальное — не серия](adr/0005-highlights-are-not-series.md)
 
 **Ни одна область ещё не описана.** Кода пока нет: `src/` — шаблон Vite, а
 единственное работающее — [прототип](../../prototype/feed-board.html), который
