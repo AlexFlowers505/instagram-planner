@@ -1,0 +1,40 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Claude Code / Codex: shared project config is committed (CLAUDE.md,
+# AGENTS.md, .claude/settings.json); per-machine overrides are not.
+.claude/settings.local.json
+.claude/worktrees/
+
+# Skills installed by the plugin manager — somebody else's documentation, in
+# two copies, and not this project's to carry. The lockfile beside them *is*
+# committed: it names the source and the hash, so the content is
+# reinstallable and the version is recorded. Vendoring the pages themselves
+# would mean hand-carrying their updates forever.
+#
+# `.agents/` is where the installer puts them; `.claude/skills/` is the copy
+# Claude Code actually reads.
+.agents/
+.claude/skills/

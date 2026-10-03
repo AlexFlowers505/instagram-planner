@@ -1,0 +1,1897 @@
+<title>Лента и линии</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600;700&family=Literata:opsz,wght@7..72,400;7..72,600&display=swap">
+<style>
+  :root {
+    color-scheme: light;
+
+    --page: #EBEDEF;
+    --card: #FFFFFF;
+    --inset: #14181C0A;
+    --ink: #14181C;
+    --ink-70: #14181CB3;
+    --ink-45: #14181C73;
+    --ink-28: #14181C47;
+    --hair: #14181C1F;
+    --on-fill: #FFFFFF;
+    --shadow: 0 1px 2px #14181C14, 0 8px 24px -12px #14181C1F;
+    --shadow-lift: 0 2px 6px #14181C1F, 0 18px 40px -14px #14181C33;
+
+    --grain: .055;
+    --cover-planned: .62;
+
+    --ease: cubic-bezier(.2, .9, .25, 1);
+    --ease-both: cubic-bezier(.4, 0, .2, 1);
+
+    --ui: "Golos Text", ui-sans-serif, system-ui, "Segoe UI", Roboto, sans-serif;
+    --ed: "Literata", ui-serif, Georgia, "Times New Roman", serif;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --page: #0D1013;
+      --card: #171B20;
+      --inset: #E6E9ED0F;
+      --ink: #E6E9ED;
+      --ink-70: #E6E9EDB3;
+      --ink-45: #E6E9ED73;
+      --ink-28: #E6E9ED47;
+      --hair: #E6E9ED26;
+      --on-fill: #0D1013;
+      --shadow: 0 1px 2px #00000066, 0 8px 24px -12px #00000080;
+      --shadow-lift: 0 2px 6px #00000080, 0 18px 40px -14px #000000A6;
+      --grain: .09;
+      --cover-planned: .5;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --page: #0D1013;
+    --card: #171B20;
+    --inset: #E6E9ED0F;
+    --ink: #E6E9ED;
+    --ink-70: #E6E9EDB3;
+    --ink-45: #E6E9ED73;
+    --ink-28: #E6E9ED47;
+    --hair: #E6E9ED26;
+    --on-fill: #0D1013;
+    --shadow: 0 1px 2px #00000066, 0 8px 24px -12px #00000080;
+    --shadow-lift: 0 2px 6px #00000080, 0 18px 40px -14px #000000A6;
+    --grain: .09;
+    --cover-planned: .5;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--page);
+    color: var(--ink);
+    font-family: var(--ui);
+    font-size: 14px;
+    line-height: 1.45;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap {
+    max-width: 1180px;
+    margin-inline: auto;
+    padding-inline: 16px;
+    padding-block: 0;
+  }
+
+  /* ---------- top bar ---------- */
+
+  .top {
+    position: sticky;
+    top: env(safe-area-inset-top, 0px);
+    z-index: 20;
+    background: color-mix(in oklab, var(--page) 78%, transparent);
+    backdrop-filter: blur(18px) saturate(140%);
+    border-bottom: 1px solid var(--hair);
+  }
+
+  .top-in {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+    padding-block: 12px;
+  }
+
+  .brand {
+    font-family: var(--ed);
+    font-size: 19px;
+    font-weight: 600;
+    letter-spacing: -.015em;
+    margin-inline-end: auto;
+  }
+
+  .brand span {
+    display: block;
+    font-family: var(--ui);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: var(--ink-45);
+  }
+
+  /* ---------- segmented control ---------- */
+
+  .seg {
+    display: flex;
+    gap: 2px;
+    padding: 3px;
+    border-radius: 999px;
+    background: var(--inset);
+    max-width: 100%;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .seg::-webkit-scrollbar { display: none; }
+
+  .seg button {
+    appearance: none;
+    border: 0;
+    background: transparent;
+    color: var(--ink-70);
+    font: inherit;
+    font-weight: 500;
+    padding: 5px 13px;
+    border-radius: 999px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 160ms var(--ease), color 160ms var(--ease);
+  }
+  .seg button:hover { color: var(--ink); }
+  .seg button[aria-selected="true"],
+  .seg button[aria-pressed="true"] {
+    background: var(--ink);
+    color: var(--on-fill);
+  }
+  .seg button:active:not([aria-selected="true"]):not([aria-pressed="true"]) { scale: .97; }
+
+  /* ---------- rhythm strip ---------- */
+
+  .rhythm {
+    padding-block: 18px 6px;
+  }
+
+  .rhythm-head {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 9px;
+  }
+
+  .eyebrow {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--ink-45);
+  }
+
+  .rhythm-note {
+    font-size: 12.5px;
+    color: var(--ink-70);
+    font-variant-numeric: tabular-nums;
+  }
+  .rhythm-note b { font-weight: 600; color: var(--ink); }
+
+  .strip {
+    display: flex;
+    align-items: flex-end;
+    gap: 3px;
+    padding: 12px 14px;
+    border-radius: 14px;
+    background: var(--card);
+    box-shadow: var(--shadow);
+    overflow-x: auto;
+    scrollbar-width: thin;
+    overscroll-behavior-x: contain;
+  }
+
+  .mark {
+    flex: 0 0 auto;
+    inline-size: 22px;
+    block-size: 30px;
+    border-radius: 5px;
+    border: 0;
+    padding: 0;
+    cursor: pointer;
+    display: grid;
+    place-items: center;
+    color: var(--on-fill);
+    position: relative;
+    transition: translate 160ms var(--ease);
+  }
+  .mark:hover { translate: 0 -3px; }
+  .mark[data-status="planned"] { opacity: .64; }
+  .mark[data-status="idea"] { opacity: .4; }
+  .mark svg { inline-size: 12px; block-size: 12px; display: block; }
+
+  .now-tick {
+    flex: 0 0 auto;
+    inline-size: 2px;
+    block-size: 40px;
+    border-radius: 2px;
+    background: var(--ink);
+    margin-inline: 6px;
+    position: relative;
+  }
+  .now-tick::after {
+    content: "сегодня";
+    position: absolute;
+    inset-block-start: -15px;
+    inset-inline-start: 50%;
+    translate: -50% 0;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: .04em;
+    color: var(--ink-70);
+    white-space: nowrap;
+  }
+
+  .gap-mark {
+    flex: 0 0 auto;
+    align-self: center;
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--ink-28);
+    padding-inline: 2px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ---------- filters ---------- */
+
+  .filters {
+    padding-block: 16px;
+    display: grid;
+    gap: 12px;
+  }
+
+  .fgroup {
+    display: grid;
+    gap: 6px;
+  }
+
+  .fgroup-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+  }
+
+  .chip {
+    appearance: none;
+    font: inherit;
+    font-size: 12.5px;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 11px;
+    border-radius: 999px;
+    border: 1px solid transparent;
+    background: var(--inset);
+    color: var(--ink);
+    cursor: pointer;
+    transition: opacity 140ms var(--ease), background 140ms var(--ease);
+  }
+  .chip:hover { background: color-mix(in oklab, var(--ink) 11%, transparent); }
+  .chip:active { scale: .97; }
+  .chip[aria-pressed="false"] {
+    opacity: .4;
+    text-decoration: line-through;
+    text-decoration-thickness: 1px;
+  }
+  .chip .dot {
+    inline-size: 9px;
+    block-size: 9px;
+    border-radius: 3px;
+    flex: 0 0 auto;
+  }
+  .chip .sub { color: var(--ink-45); font-variant-numeric: tabular-nums; }
+
+  .linkbtn {
+    appearance: none;
+    border: 0;
+    background: transparent;
+    font: inherit;
+    font-size: 11.5px;
+    font-weight: 600;
+    letter-spacing: .02em;
+    color: var(--ink-45);
+    cursor: pointer;
+    padding: 2px 4px;
+    border-radius: 6px;
+    text-decoration: underline;
+    text-decoration-color: var(--ink-28);
+    text-underline-offset: 3px;
+  }
+  .linkbtn:hover { color: var(--ink); }
+
+  /* ---------- stage ---------- */
+
+  .stage-bar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    padding-block: 10px 16px;
+  }
+
+  h2.section {
+    font-family: var(--ed);
+    font-size: 17px;
+    font-weight: 600;
+    letter-spacing: -.01em;
+    margin: 0;
+    margin-inline-end: auto;
+  }
+
+  .hint {
+    font-size: 12px;
+    color: var(--ink-45);
+    max-width: 48ch;
+  }
+
+  /* ---------- feed grid ---------- */
+
+  .feed {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    max-width: 780px;
+  }
+
+  @media (max-width: 460px) {
+    .feed { gap: 6px; }
+  }
+
+  .divider {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding-block: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--ink-45);
+  }
+  .divider::after {
+    content: "";
+    flex: 1;
+    block-size: 1px;
+    background: var(--hair);
+  }
+
+  .tile {
+    position: relative;
+    appearance: none;
+    border: 0;
+    padding: 0;
+    background: var(--card);
+    border-radius: 12px;
+    overflow: hidden;
+    text-align: start;
+    color: inherit;
+    font: inherit;
+    cursor: pointer;
+    box-shadow: var(--shadow);
+    display: grid;
+    grid-template-rows: auto 1fr;
+    transition: box-shadow 200ms var(--ease), translate 200ms var(--ease);
+  }
+  .tile:hover { box-shadow: var(--shadow-lift); translate: 0 -2px; }
+  .tile:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+
+  .tile[data-draggable="1"] { touch-action: none; }
+  .tile[data-dragging="1"] {
+    z-index: 5;
+    box-shadow: var(--shadow-lift);
+    scale: 1.035;
+    translate: var(--tx, 0) var(--ty, 0);
+    transition: none;
+    cursor: grabbing;
+  }
+
+  .cover {
+    position: relative;
+    aspect-ratio: 4 / 5;
+    max-width: 100%;
+    background-size: cover;
+    background-position: center;
+  }
+
+  .cover::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    opacity: var(--grain);
+    pointer-events: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  .tile[data-status="planned"] .cover { opacity: var(--cover-planned); }
+
+  .tile[data-status="planned"]::before,
+  .tile[data-status="idea"]::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    border: 1.5px dashed var(--line, var(--ink-28));
+    opacity: .75;
+    pointer-events: none;
+    z-index: 3;
+  }
+
+  .tile[data-status="idea"] .cover {
+    background: var(--inset);
+    display: grid;
+    place-items: center;
+  }
+  .tile[data-status="idea"] .cover::after { opacity: 0; }
+
+  .idea-glyph {
+    color: var(--line, var(--ink-28));
+    opacity: .5;
+  }
+  .idea-glyph svg { inline-size: 30px; block-size: 30px; }
+
+  .rail {
+    position: absolute;
+    inset-block: 0;
+    inset-inline-start: 0;
+    inline-size: 3px;
+    background: var(--line, var(--ink-28));
+    z-index: 2;
+  }
+
+  .badges {
+    position: absolute;
+    inset-block-start: 6px;
+    inset-inline-end: 6px;
+    display: flex;
+    gap: 4px;
+    z-index: 2;
+  }
+
+  .fmt {
+    display: grid;
+    place-items: center;
+    inline-size: 22px;
+    block-size: 22px;
+    border-radius: 7px;
+    background: #0B0E12A8;
+    backdrop-filter: blur(6px);
+    color: #fff;
+  }
+  .fmt svg { inline-size: 13px; block-size: 13px; display: block; }
+  .fmt[data-fmt="single"] { background: #0B0E1266; }
+
+  .story-ticks {
+    position: absolute;
+    inset-block-start: 7px;
+    inset-inline-start: 9px;
+    display: flex;
+    gap: 3px;
+    z-index: 2;
+  }
+  .story-ticks i {
+    inline-size: 12px;
+    block-size: 3px;
+    border-radius: 2px;
+    background: #FFFFFFD9;
+    box-shadow: 0 0 0 .5px #0B0E1240;
+  }
+
+  .tile-body {
+    padding: 8px 9px 10px;
+    display: grid;
+    gap: 3px;
+    align-content: start;
+  }
+
+  .tile-title {
+    font-family: var(--ed);
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.25;
+    letter-spacing: -.005em;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    line-clamp: 2;
+    overflow: clip;
+  }
+
+  .tile-meta {
+    font-size: 10.5px;
+    color: var(--ink-45);
+    font-variant-numeric: tabular-nums;
+    display: flex;
+    gap: 5px;
+    align-items: center;
+  }
+  .tile-meta .ln {
+    color: var(--line, var(--ink-45));
+    font-weight: 600;
+  }
+
+  .feed[data-captions="off"] .tile-body { display: none; }
+  .feed[data-captions="off"] .tile { grid-template-rows: auto; }
+
+  /* ---------- idea shelf ---------- */
+
+  .shelf {
+    margin-block-start: 22px;
+    padding: 14px;
+    border-radius: 14px;
+    background: var(--inset);
+    max-width: 780px;
+  }
+  .shelf-head {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+  .shelf .feed { gap: 10px; max-width: none; }
+
+  /* ---------- lines view ---------- */
+
+  .lines {
+    display: grid;
+    gap: 20px;
+  }
+
+  .line-block {
+    background: var(--card);
+    border-radius: 16px;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    display: grid;
+    grid-template-columns: 3px 1fr;
+  }
+  .line-block > .bar { background: var(--line); }
+  .line-block > .inner { padding: 16px 18px 18px; min-width: 0; }
+
+  .line-title {
+    font-family: var(--ed);
+    font-size: 18px;
+    font-weight: 600;
+    letter-spacing: -.012em;
+    margin: 0 0 2px;
+  }
+  .line-sum {
+    font-size: 12.5px;
+    color: var(--ink-45);
+    font-variant-numeric: tabular-nums;
+    margin-bottom: 14px;
+  }
+
+  .sub-line { margin-block-start: 16px; }
+  .sub-line-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+  .sub-line-head h4 {
+    margin: 0;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: .01em;
+  }
+  .sub-line-head .count {
+    font-size: 11px;
+    color: var(--ink-45);
+    font-variant-numeric: tabular-nums;
+  }
+  .sub-line-head .bead {
+    inline-size: 8px;
+    block-size: 8px;
+    border-radius: 999px;
+    background: var(--line);
+  }
+
+  .row-list { display: grid; gap: 6px; }
+
+  .row {
+    appearance: none;
+    border: 0;
+    font: inherit;
+    text-align: start;
+    color: inherit;
+    cursor: pointer;
+    display: grid;
+    grid-template-columns: 42px 1fr auto;
+    gap: 11px;
+    align-items: center;
+    padding: 7px 9px;
+    border-radius: 11px;
+    background: var(--inset);
+    transition: background 150ms var(--ease);
+    min-width: 0;
+  }
+  .row:hover { background: color-mix(in oklab, var(--ink) 10%, transparent); }
+  .row:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+
+  .row-thumb {
+    aspect-ratio: 4 / 5;
+    border-radius: 6px;
+    background-size: cover;
+    background-position: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .row[data-status="planned"] .row-thumb { opacity: var(--cover-planned); }
+  .row[data-status="idea"] .row-thumb { background: var(--hair); }
+
+  .row-main { min-width: 0; }
+  .row-h {
+    font-family: var(--ed);
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.3;
+    letter-spacing: -.005em;
+  }
+  .row-s {
+    font-size: 12px;
+    color: var(--ink-70);
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    line-clamp: 1;
+    overflow: clip;
+  }
+  .row-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11.5px;
+    color: var(--ink-45);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+  .row-right .fmt-sm { color: var(--ink-70); display: grid; place-items: center; }
+  .row-right .fmt-sm svg { inline-size: 14px; block-size: 14px; }
+
+  /* ---------- schedule view ---------- */
+
+  .weeks { display: grid; gap: 10px; }
+
+  .week {
+    background: var(--card);
+    border-radius: 14px;
+    box-shadow: var(--shadow);
+    padding: 13px 16px 15px;
+    display: grid;
+    grid-template-columns: 112px 1fr;
+    gap: 16px;
+    align-items: start;
+  }
+  @media (max-width: 620px) {
+    .week { grid-template-columns: 1fr; gap: 9px; }
+  }
+
+  .week[data-empty="1"] { box-shadow: none; background: var(--inset); }
+
+  .week-when {
+    font-size: 12.5px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -.005em;
+  }
+  .week-when span {
+    display: block;
+    font-weight: 500;
+    font-size: 11px;
+    color: var(--ink-45);
+    letter-spacing: .04em;
+    text-transform: uppercase;
+  }
+  .week[data-now="1"] .week-when { color: var(--ink); }
+  .week[data-now="1"] { outline: 1.5px solid var(--ink); }
+
+  .week-body { display: grid; gap: 9px; min-width: 0; }
+  .week-empty { font-size: 12.5px; color: var(--ink-45); }
+
+  .lane {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+  }
+  .lane-label {
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: .07em;
+    text-transform: uppercase;
+    color: var(--ink-28);
+    flex: 0 0 auto;
+    margin-inline-end: 2px;
+  }
+
+  .pill {
+    appearance: none;
+    border: 0;
+    font: inherit;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--ink);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    max-width: 100%;
+    padding: 4px 10px 4px 5px;
+    border-radius: 999px;
+    background: var(--inset);
+    cursor: pointer;
+    transition: background 150ms var(--ease);
+  }
+  .pill:hover { background: color-mix(in oklab, var(--ink) 10%, transparent); }
+  .pill:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+  .pill .cap {
+    inline-size: 18px;
+    block-size: 18px;
+    border-radius: 6px;
+    display: grid;
+    place-items: center;
+    color: var(--on-fill);
+    flex: 0 0 auto;
+  }
+  .pill .cap svg { inline-size: 11px; block-size: 11px; }
+  .pill .txt { overflow: clip; text-overflow: ellipsis; white-space: nowrap; }
+  .pill[data-status="planned"] .cap { opacity: .7; }
+
+  .story-pill {
+    font-size: 11.5px;
+    color: var(--ink-70);
+    background: transparent;
+    border: 1px dashed var(--hair);
+    padding: 3px 10px;
+    border-radius: 999px;
+  }
+
+  /* ---------- detail dialog ---------- */
+
+  dialog#detail {
+    border: 0;
+    padding: 0;
+    max-width: min(560px, calc(100% - 32px));
+    width: 100%;
+    max-height: 86dvh;
+    border-radius: 18px;
+    background: var(--card);
+    color: var(--ink);
+    box-shadow: var(--shadow-lift);
+    overflow: clip;
+  }
+  dialog#detail::backdrop {
+    background: #0B0E12;
+    opacity: .42;
+    backdrop-filter: blur(3px);
+  }
+
+  .d-scroll {
+    max-height: 86dvh;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+  }
+
+  .d-cover {
+    aspect-ratio: 16 / 9;
+    max-width: 100%;
+    background-size: cover;
+    background-position: center;
+    position: relative;
+  }
+  .d-cover .rail { inline-size: 4px; }
+
+  .d-close {
+    position: absolute;
+    inset-block-start: 10px;
+    inset-inline-end: 10px;
+    inline-size: 30px;
+    block-size: 30px;
+    border: 0;
+    border-radius: 999px;
+    background: #0B0E12A8;
+    backdrop-filter: blur(8px);
+    color: #fff;
+    cursor: pointer;
+    display: grid;
+    place-items: center;
+  }
+  .d-close:hover { background: #0B0E12CC; }
+  .d-close svg { inline-size: 15px; block-size: 15px; }
+
+  .d-body { padding: 18px 20px 20px; display: grid; gap: 14px; }
+
+  .d-path {
+    font-size: 11.5px;
+    font-weight: 600;
+    letter-spacing: .03em;
+    color: var(--line, var(--ink-45));
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .d-path .sep { color: var(--ink-28); }
+
+  .d-h {
+    font-family: var(--ed);
+    font-size: 24px;
+    font-weight: 600;
+    line-height: 1.16;
+    letter-spacing: -.02em;
+    text-wrap: balance;
+    margin: 0;
+  }
+  .d-s {
+    font-size: 14.5px;
+    line-height: 1.5;
+    color: var(--ink-70);
+    margin: 0;
+    max-width: 58ch;
+  }
+
+  .d-facts {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(118px, 1fr));
+    gap: 1px;
+    background: var(--hair);
+    border-radius: 11px;
+    overflow: clip;
+  }
+  .d-fact {
+    background: var(--card);
+    padding: 9px 11px;
+  }
+  .d-fact dt {
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: .07em;
+    text-transform: uppercase;
+    color: var(--ink-45);
+    margin-bottom: 2px;
+  }
+  .d-fact dd {
+    margin: 0;
+    font-size: 13px;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .d-fact dd svg { inline-size: 14px; block-size: 14px; }
+
+  .d-sub { display: grid; gap: 7px; }
+  .d-sub .eyebrow { margin: 0; }
+
+  .d-stories { display: grid; gap: 5px; margin: 0; padding: 0; list-style: none; }
+  .d-stories li {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 9px;
+    align-items: baseline;
+    padding: 7px 10px;
+    border-radius: 9px;
+    background: var(--inset);
+    font-size: 13px;
+  }
+  .d-stories .kind {
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: .05em;
+    text-transform: uppercase;
+    color: var(--ink-45);
+    white-space: nowrap;
+  }
+
+  .d-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+
+  .btn {
+    appearance: none;
+    font: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    border: 0;
+    border-radius: 10px;
+    padding: 8px 14px;
+    background: var(--inset);
+    color: var(--ink);
+    cursor: pointer;
+    transition: background 150ms var(--ease);
+  }
+  .btn:hover { background: color-mix(in oklab, var(--ink) 11%, transparent); }
+  .btn:active { scale: .97; }
+  .btn-solid { background: var(--ink); color: var(--on-fill); }
+  .btn-solid:hover { background: color-mix(in oklab, var(--ink) 88%, var(--page)); }
+
+  .note { font-size: 11.5px; color: var(--ink-45); }
+
+  /* ---------- model footer ---------- */
+
+  .model {
+    margin-block: 40px 56px;
+    padding-block-start: 26px;
+    border-top: 1px solid var(--hair);
+  }
+
+  .axes {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+    gap: 14px;
+    margin-block-start: 14px;
+  }
+
+  .axis {
+    padding: 15px 16px 16px;
+    border-radius: 13px;
+    background: var(--card);
+    box-shadow: var(--shadow);
+  }
+  .axis h3 {
+    font-family: var(--ed);
+    font-size: 15px;
+    font-weight: 600;
+    margin: 0 0 3px;
+    letter-spacing: -.008em;
+  }
+  .axis .rule {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: var(--ink-45);
+    margin-bottom: 7px;
+  }
+  .axis p { margin: 0; font-size: 13px; line-height: 1.5; color: var(--ink-70); }
+  .axis p + p { margin-block-start: 7px; }
+  .axis b { color: var(--ink); font-weight: 600; }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: .01ms !important;
+      transition-duration: .01ms !important;
+    }
+    .mark:hover, .tile:hover { translate: none; }
+  }
+
+  @media (prefers-reduced-transparency: reduce) {
+    .top { background: var(--page); backdrop-filter: none; }
+    .fmt, .d-close { backdrop-filter: none; background: #0B0E12; }
+  }
+</style>
+
+<header class="top">
+  <div class="wrap top-in">
+    <div class="brand">Лента и линии<span>состав контента</span></div>
+    <div class="seg" role="tablist" aria-label="Вид">
+      <button role="tab" data-view="feed" aria-selected="true">Сетка</button>
+      <button role="tab" data-view="lines" aria-selected="false">Линии</button>
+      <button role="tab" data-view="weeks" aria-selected="false">Срок</button>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <section class="rhythm">
+    <div class="rhythm-head">
+      <div class="eyebrow">Ритм выхода</div>
+      <div class="rhythm-note" id="rhythm-note"></div>
+    </div>
+    <div class="strip" id="strip" role="list" aria-label="Публикации по порядку выхода"></div>
+  </section>
+
+  <section class="filters" id="filters" aria-label="Фильтры"></section>
+
+  <main id="stage" tabindex="-1"></main>
+
+  <footer class="model">
+    <div class="eyebrow">Как это устроено</div>
+    <div class="axes">
+      <div class="axis">
+        <h3>Формат</h3>
+        <div class="rule">ровно один</div>
+        <p>Рилс, одно фото или карусель. Это не метка, а <b>свойство поста</b>: третьего ответа нет, и двух одновременно тоже. Поэтому формат рисуется глифом, а не цветом — ни один формат не лучше другого.</p>
+      </div>
+      <div class="axis">
+        <h3>Линия</h3>
+        <div class="rule">одна, с вложением</div>
+        <p>«Китай. Пекин» → «Цзиншань». Линия отвечает на вопрос <b>где пост стоит</b>, и вещь, которая стоит в двух местах, не стоит нигде — поэтому линия одна. Вложенность на два уровня: поездка и её части.</p>
+        <p>Линия несёт цвет, потому что в сетке важно видеть, где одна тема идёт подряд, а где прерывается.</p>
+      </div>
+      <div class="axis">
+        <h3>Метки</h3>
+        <div class="rule">сколько угодно</div>
+        <p>Настроение, цвет, «я в кадре», «смешное», «вдвоём». Метка отвечает на вопрос <b>какой пост</b>, и таких ответов бывает много сразу. Сюда же уйдёт всё, что придумается потом: линию это не затронет.</p>
+      </div>
+      <div class="axis">
+        <h3>Состояние</h3>
+        <div class="rule">опубликован · запланирован · идея</div>
+        <p>Запланированный пост обведён пунктиром и приглушён — <b>его ещё можно передвинуть</b>. Опубликованный плотный и неподвижный: историю не переставляют. Идея — без даты и без обложки, лежит на полке под сеткой.</p>
+      </div>
+      <div class="axis">
+        <h3>Сторис</h3>
+        <div class="rule">не пост, а слой</div>
+        <p>Сторис живёт сутки, значит в сетке профиля её нет вообще. Поэтому она висит <b>на посте или на линии</b>, а не рядом с ними: подводка, отсылка, закулисье. На плитке — тонкие чёрточки сверху, по одной на сторис; в «Сроке» — своя дорожка, на которой видно пустые недели.</p>
+      </div>
+      <div class="axis">
+        <h3>Порядок</h3>
+        <div class="rule">как в профиле</div>
+        <p>Сетка по умолчанию показывает то, что увидит зритель: <b>новое слева сверху</b>, запланированное над чертой «сегодня». Это и есть проверка композиции. Переключатель «по порядку выхода» разворачивает её в хронологию, когда надо выстроить рассказ.</p>
+      </div>
+    </div>
+  </footer>
+</div>
+
+<dialog id="detail" aria-labelledby="d-h"></dialog>
+
+<script>
+  "use strict";
+
+  const TODAY = "2026-10-03";
+  const STORE = "feed-board-v1";
+
+  /* ----- icons ----- */
+
+  const I = {
+    reel: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="4"/><path d="M3 9h18M9 3l2.5 6M16 3l2.5 6"/><path d="M11 13.2v3.6l3.2-1.8z" fill="currentColor" stroke="none"/></svg>',
+    carousel: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="3" width="13" height="13" rx="3"/><path d="M16 20.5H7a3.5 3.5 0 0 1-3.5-3.5V8"/></svg>',
+    single: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="4"/><circle cx="9" cy="9" r="1.6"/><path d="M4 17l4.5-4.5 4 4L16 13l4 4"/></svg>',
+    idea: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0-3.5 10.9V16h7v-2.1A6 6 0 0 0 12 3Z"/><path d="M10 19h4M10.5 21.5h3"/></svg>',
+    close: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>'
+  };
+
+  const FORMATS = {
+    reel: { label: "Рилс", icon: I.reel },
+    carousel: { label: "Карусель", icon: I.carousel },
+    single: { label: "Одно фото", icon: I.single }
+  };
+
+  const FORM_WORDS = {
+    carousel: ["карусель", "карусели", "каруселей"],
+    single: ["фото", "фото", "фото"],
+    reel: ["рилс", "рилса", "рилсов"]
+  };
+
+  const STATUSES = {
+    posted: "Опубликован",
+    planned: "Запланирован",
+    idea: "Идея"
+  };
+
+  /* ----- data ----- */
+
+  const LINES = [
+    { id: "cn", name: "Китай. Пекин", color: "#B8422F" },
+    { id: "cn-jingshan", name: "Цзиншань", parent: "cn" },
+    { id: "cn-night", name: "Ночной Пекин", parent: "cn" },
+    { id: "cn-food", name: "Пекинская еда", parent: "cn" },
+    { id: "duo", name: "Мы вдвоём", color: "#7D6AA8" },
+    { id: "places", name: "Я и места", color: "#3E7C8C" }
+  ];
+
+  const NO_LINE = { id: "", name: "Вне линий", color: "#8C949E" };
+
+  const POSTS = [
+    {
+      id: "p01", line: "places", format: "single", status: "posted", date: "2026-08-22",
+      h: "Лучший суп в моей жизни был в подвале",
+      s: "Случайная забегаловка на две табуретки, вывеска от руки. Фото на вытянутой руке, лицо — отдельный жанр.",
+      tags: ["смешное", "я в кадре", "еда"],
+      stories: [{ k: "отсылка", t: "Скрин вывески со стрелкой на пост" }]
+    },
+    {
+      id: "p02", line: "duo", format: "single", status: "posted", date: "2026-08-30",
+      h: "Мы и очень большой десерт",
+      s: "Взяли один на двоих, съели каждый свой. Тёплый кадр, ничего не планировали, и поэтому он работает.",
+      tags: ["тёплое", "я в кадре", "вдвоём"],
+      stories: []
+    },
+    {
+      id: "p03", line: "cn-jingshan", format: "carousel", status: "posted", date: "2026-09-12",
+      h: "Парк, в который приходят жить",
+      s: "Цзиншань целиком: пионы, фудкорты, люди в костюмах династии, бабушки с веерами и мужчина, который поёт у стены каждое утро. Десять кадров, чтобы стало понятно: это не музей, а район.",
+      tags: ["люди", "цвет", "день"],
+      stories: [
+        { k: "подводка", t: "Опрос: Гугун или парк напротив?" },
+        { k: "закулисье", t: "Как я десять минут ждал, пока уйдут из кадра" }
+      ]
+    },
+    {
+      id: "p04", line: "cn-jingshan", format: "carousel", status: "posted", date: "2026-09-18",
+      h: "Павильон Ваньчунь",
+      s: "Самая высокая точка старого Пекина. Вид на Гугун сверху, очередь на подъём и почему сюда идут именно к закату, а не утром.",
+      tags: ["вид", "архитектура", "закат"],
+      stories: [{ k: "отсылка", t: "Вид сверху вертикально + «в посте ещё восемь»" }]
+    },
+    {
+      id: "p05", line: "cn-food", format: "carousel", status: "posted", date: "2026-09-26",
+      h: "Я не прочитал ни одного меню",
+      s: "Утка, лапша с кунжутной пастой, баоцзы на пару и штука, название которой я до сих пор не знаю. Заказывал пальцем.",
+      tags: ["еда", "цвет", "смешное"],
+      stories: []
+    },
+    {
+      id: "p06", line: "cn", format: "reel", status: "posted", date: "2026-10-01",
+      h: "Пекин на скорости",
+      s: "Монтаж из метро, хутунов и вечерней Ванфуцзин. Двадцать секунд, чтобы было понятно, какой это город — остальное в каруселях.",
+      tags: ["движение", "город"],
+      stories: [{ k: "подводка", t: "Три секунды из монтажа, без звука" }]
+    },
+    {
+      id: "p07", line: "cn-jingshan", format: "carousel", status: "planned", date: "2026-10-07",
+      h: "Вечерняя архитектура Цзиншаня",
+      s: "Те же постройки после заката: подсветка, красные колонны, пустые дорожки, синий воздух. Снимал в последний вечер, когда уже закрывали.",
+      tags: ["архитектура", "вечер", "цвет"],
+      stories: []
+    },
+    {
+      id: "p08", line: "cn-night", format: "reel", status: "planned", date: "2026-10-12",
+      h: "Что мы делали ночами",
+      s: "Ночной Пекин: барахолка, караоке, велосипеды в три часа и очередь за шашлыком. Самый быстрый монтаж из всей поездки.",
+      tags: ["движение", "ночь", "смешное"],
+      stories: [
+        { k: "подводка", t: "Кадр с караоке, вопрос «угадай город»" },
+        { k: "подводка", t: "Обратный отсчёт за сутки" }
+      ]
+    },
+    {
+      id: "p09", line: "cn-night", format: "carousel", status: "planned", date: "2026-10-17",
+      h: "Люди ночного Пекина",
+      s: "Портреты тех, кого встретили: таксист, продавец шашлыков, две девушки с гитарой у перехода. Снято на 35 мм, почти без света.",
+      tags: ["люди", "ночь"],
+      stories: []
+    },
+    {
+      id: "p10", line: "cn", format: "single", status: "planned", date: "2026-10-23",
+      h: "Один кадр, который всё объясняет",
+      s: "Финал линии про Пекин. Одно фото, подпись в три строки, больше ничего — после четырёх каруселей нужна пауза.",
+      tags: ["тихое", "город"],
+      stories: []
+    },
+    {
+      id: "p11", line: "duo", format: "reel", status: "idea", date: "",
+      h: "Как мы собирались в поездку",
+      s: "Короткий смешной монтаж из домашних съёмок до отлёта. Хорошо встал бы перед началом китайской линии, если успею смонтировать.",
+      tags: ["смешное", "вдвоём", "движение"],
+      stories: []
+    },
+    {
+      id: "p12", line: "", format: "single", status: "idea", date: "",
+      h: "Я и кофе в семь утра",
+      s: "Просто хороший кадр без повода. Держу как разрядку между плотными линиями — вставить туда, где две карусели подряд.",
+      tags: ["тихое", "я в кадре"],
+      stories: []
+    }
+  ];
+
+  const LOOSE_STORIES = [
+    { date: "2026-09-08", t: "Сборы, чемодан, паспорт — за четыре дня до вылета" },
+    { date: "2026-09-21", t: "Прогулка по хутунам, ничего не вышло в пост" },
+    { date: "2026-10-02", t: "Отвечаю на вопросы про визу" }
+  ];
+
+  /* ----- derived maps ----- */
+
+  const lineById = new Map(LINES.map(l => [l.id, l]));
+  lineById.set("", NO_LINE);
+
+  function rootOf(line) {
+    let l = lineById.get(line) || NO_LINE;
+    while (l.parent) l = lineById.get(l.parent);
+    return l;
+  }
+  function colorOf(lineId) { return rootOf(lineId).color; }
+  function pathOf(lineId) {
+    const out = [];
+    let l = lineById.get(lineId) || NO_LINE;
+    while (l) { out.unshift(l.name); l = l.parent ? lineById.get(l.parent) : null; }
+    return out;
+  }
+
+  const ALL_TAGS = [...new Set(POSTS.flatMap(p => p.tags))].sort((a, b) => a.localeCompare(b, "ru"));
+
+  /* ----- persisted state ----- */
+
+  function loadSaved() {
+    try {
+      const raw = localStorage.getItem(STORE);
+      return raw ? JSON.parse(raw) : {};
+    } catch { return {}; }
+  }
+  function save() {
+    try {
+      localStorage.setItem(STORE, JSON.stringify({ queue: state.queue, covers: state.covers }));
+    } catch { /* private window, blocked storage — the board still works */ }
+  }
+
+  const saved = loadSaved();
+
+  const plannedIds = POSTS.filter(p => p.status === "planned").map(p => p.id);
+  const savedQueue = Array.isArray(saved.queue)
+    ? saved.queue.filter(id => plannedIds.includes(id))
+    : [];
+  const queue = [...savedQueue, ...plannedIds.filter(id => !savedQueue.includes(id))];
+
+  const state = {
+    view: "feed",
+    order: "profile",
+    captions: true,
+    queue,
+    covers: (saved.covers && typeof saved.covers === "object") ? saved.covers : {},
+    hidden: { format: new Set(), line: new Set(), status: new Set(), tag: new Set() }
+  };
+
+  /* the planned schedule: dates belong to slots, posts fill them */
+  const SLOTS = POSTS.filter(p => p.status === "planned").map(p => p.date).sort();
+
+  function postById(id) { return POSTS.find(p => p.id === id); }
+
+  /* date of a post: posted posts carry their own, planned ones take their slot */
+  function dateOf(p) {
+    if (p.status !== "planned") return p.date;
+    const i = state.queue.indexOf(p.id);
+    return i >= 0 ? SLOTS[i] : p.date;
+  }
+
+  /* ----- formatting ----- */
+
+  const MONTHS = ["янв.", "февр.", "мар.", "апр.", "мая", "июня", "июля", "авг.", "сент.", "окт.", "нояб.", "дек."];
+  const MONTHS_NOM = ["январь", "февраль", "март", "апрель", "май", "июнь", "июль", "август", "сентябрь", "октябрь", "ноябрь", "декабрь"];
+
+  function parse(key) {
+    const [y, m, d] = key.split("-").map(Number);
+    return new Date(y, m - 1, d);
+  }
+  function fmtDay(key) {
+    if (!key) return "без даты";
+    const d = parse(key);
+    return d.getDate() + " " + MONTHS[d.getMonth()];
+  }
+  function daysBetween(a, b) {
+    return Math.round((parse(b) - parse(a)) / 86400000);
+  }
+  function plural(n, one, few, many) {
+    const m100 = n % 100, m10 = n % 10;
+    if (m10 === 1 && m100 !== 11) return one;
+    if (m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14)) return few;
+    return many;
+  }
+
+  /* ----- procedural cover ----- */
+
+  function hash(s) {
+    let h = 2166136261;
+    for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); }
+    return Math.abs(h);
+  }
+
+  function coverCss(p) {
+    const own = state.covers[p.id];
+    if (own) return `background-image:url(${own})`;
+    if (p.status === "idea") return "";
+    const c = colorOf(p.line);
+    const h = hash(p.id);
+    const x1 = 15 + (h % 50), y1 = 10 + ((h >> 3) % 45);
+    const x2 = 55 + ((h >> 6) % 40), y2 = 50 + ((h >> 9) % 45);
+    const ang = (h >> 12) % 360;
+    return `background-image:
+      radial-gradient(58% 72% at ${x1}% ${y1}%, color-mix(in oklab, ${c} 42%, white) 0%, transparent 62%),
+      radial-gradient(64% 64% at ${x2}% ${y2}%, color-mix(in oklab, ${c} 92%, black) 0%, transparent 66%),
+      linear-gradient(${ang}deg, color-mix(in oklab, ${c} 52%, white) 0%, color-mix(in oklab, ${c} 86%, black) 100%)`;
+  }
+
+  /* ----- filtering ----- */
+
+  function visible(p) {
+    const h = state.hidden;
+    if (h.format.has(p.format)) return false;
+    if (h.status.has(p.status)) return false;
+    if (h.line.has(rootOf(p.line).id)) return false;
+    if (h.tag.size && p.tags.some(t => h.tag.has(t))) return false;
+    return true;
+  }
+
+  function visiblePosts() { return POSTS.filter(visible); }
+
+  /* ----- feed order ----- */
+
+  /* chronological: posted by their date, planned by slot, oldest first */
+  function timeline(posts) {
+    return posts
+      .filter(p => p.status !== "idea")
+      .slice()
+      .sort((a, b) => dateOf(a).localeCompare(dateOf(b)));
+  }
+
+  /* ---------------- rendering ---------------- */
+
+  const $ = sel => document.querySelector(sel);
+  const stage = $("#stage");
+
+  function fmtBadge(format, cls) {
+    const f = FORMATS[format];
+    return `<span class="${cls}" data-fmt="${format}" title="${f.label}" aria-label="${f.label}">${f.icon}</span>`;
+  }
+
+  /* ----- rhythm strip ----- */
+
+  function renderRhythm() {
+    const chron = timeline(visiblePosts());
+    const strip = $("#strip");
+    let html = "";
+    let drewNow = false;
+    let prev = null;
+
+    for (const p of chron) {
+      const d = dateOf(p);
+      if (prev) {
+        const gap = daysBetween(prev, d);
+        if (gap >= 10) html += `<span class="gap-mark" title="${gap} ${plural(gap, "день", "дня", "дней")} без публикаций">${gap}д</span>`;
+      }
+      if (!drewNow && d > TODAY) { html += `<span class="now-tick" role="separator"></span>`; drewNow = true; }
+      const c = colorOf(p.line);
+      html += `<button class="mark" role="listitem" data-id="${p.id}" data-status="${p.status}"
+        style="background:${c}" title="${fmtDay(d)} · ${FORMATS[p.format].label} · ${p.h}">${FORMATS[p.format].icon}</button>`;
+      prev = d;
+    }
+    if (!drewNow) html += `<span class="now-tick" role="separator"></span>`;
+    strip.innerHTML = html;
+
+    /* the readout: what the strip shows but the eye has to count */
+    const counts = { carousel: 0, single: 0, reel: 0 };
+    for (const p of visiblePosts()) counts[p.format]++;
+
+    let run = 0, bestRun = 0, bestFmt = null, cur = null;
+    for (const p of chron) {
+      if (p.format === cur) run++; else { cur = p.format; run = 1; }
+      if (run > bestRun) { bestRun = run; bestFmt = cur; }
+    }
+
+    let bestGap = 0, gapFrom = "", gapTo = "";
+    for (let i = 1; i < chron.length; i++) {
+      const g = daysBetween(dateOf(chron[i - 1]), dateOf(chron[i]));
+      if (g > bestGap) { bestGap = g; gapFrom = dateOf(chron[i - 1]); gapTo = dateOf(chron[i]); }
+    }
+
+    const parts = [];
+    parts.push(`${counts.carousel} ${plural(counts.carousel, "карусель", "карусели", "каруселей")} · ${counts.single} ${plural(counts.single, "фото", "фото", "фото")} · ${counts.reel} ${plural(counts.reel, "рилс", "рилса", "рилсов")}`);
+    if (bestRun >= 3) {
+      const w = FORM_WORDS[bestFmt];
+      parts.push(`подряд <b>${bestRun} ${plural(bestRun, w[0], w[1], w[2])}</b>`);
+    }
+    if (bestGap >= 10) parts.push(`пауза <b>${bestGap} ${plural(bestGap, "день", "дня", "дней")}</b> (${fmtDay(gapFrom)} — ${fmtDay(gapTo)})`);
+    $("#rhythm-note").innerHTML = parts.join(" &nbsp;·&nbsp; ");
+  }
+
+  /* ----- filters ----- */
+
+  function renderFilters() {
+    const groups = [];
+
+    groups.push({
+      key: "format", label: "Формат",
+      items: Object.keys(FORMATS).map(k => ({
+        id: k, name: FORMATS[k].label,
+        n: POSTS.filter(p => p.format === k).length
+      }))
+    });
+
+    groups.push({
+      key: "line", label: "Линия",
+      items: [...LINES.filter(l => !l.parent), NO_LINE].map(l => ({
+        id: l.id, name: l.name, color: l.color,
+        n: POSTS.filter(p => rootOf(p.line).id === l.id).length
+      })).filter(x => x.n > 0)
+    });
+
+    groups.push({
+      key: "status", label: "Состояние",
+      items: Object.keys(STATUSES).map(k => ({
+        id: k, name: STATUSES[k],
+        n: POSTS.filter(p => p.status === k).length
+      }))
+    });
+
+    groups.push({
+      key: "tag", label: "Метки",
+      items: ALL_TAGS.map(t => ({ id: t, name: t, n: POSTS.filter(p => p.tags.includes(t)).length }))
+    });
+
+    $("#filters").innerHTML = groups.map(g => {
+      const allHidden = g.items.every(i => state.hidden[g.key].has(i.id));
+      return `<div class="fgroup">
+        <div class="fgroup-head">
+          <span class="eyebrow">${g.label}</span>
+          <button class="linkbtn" data-bulk="${g.key}">${allHidden ? "показать всё" : "скрыть всё"}</button>
+        </div>
+        <div class="chips">${g.items.map(i => {
+          const on = !state.hidden[g.key].has(i.id);
+          return `<button class="chip" aria-pressed="${on}" data-group="${g.key}" data-item="${i.id}">
+            ${i.color ? `<span class="dot" style="background:${i.color}"></span>` : ""}
+            ${i.name}<span class="sub">${i.n}</span>
+          </button>`;
+        }).join("")}</div>
+      </div>`;
+    }).join("");
+  }
+
+  /* ----- tile ----- */
+
+  function tile(p, draggable) {
+    const c = colorOf(p.line);
+    const d = dateOf(p);
+    const ticks = p.stories.map(() => "<i></i>").join("");
+    const line = lineById.get(p.line) || NO_LINE;
+    return `<button class="tile" data-id="${p.id}" data-status="${p.status}"
+      ${draggable ? 'data-draggable="1"' : ""} style="--line:${c}">
+      <span class="cover" style="${coverCss(p)}">
+        ${p.status === "idea" ? `<span class="idea-glyph">${I.idea}</span>` : ""}
+      </span>
+      <span class="rail"></span>
+      ${ticks ? `<span class="story-ticks" title="${p.stories.length} ${plural(p.stories.length, "сторис", "сторис", "сторис")}">${ticks}</span>` : ""}
+      <span class="badges">${fmtBadge(p.format, "fmt")}</span>
+      <span class="tile-body">
+        <span class="tile-title">${p.h}</span>
+        <span class="tile-meta"><span class="ln">${line.name}</span>· ${p.status === "idea" ? "идея" : fmtDay(d)}</span>
+      </span>
+    </button>`;
+  }
+
+  /* ----- views ----- */
+
+  function viewFeed() {
+    const posts = visiblePosts();
+    const chron = timeline(posts);
+    const ideas = posts.filter(p => p.status === "idea");
+
+    const seq = state.order === "profile" ? chron.slice().reverse() : chron;
+    const firstPastIdx = seq.findIndex(p => state.order === "profile"
+      ? dateOf(p) <= TODAY
+      : dateOf(p) > TODAY);
+
+    let cells = "";
+    seq.forEach((p, i) => {
+      if (i === firstPastIdx && firstPastIdx !== -1) {
+        cells += `<div class="divider">${state.order === "profile" ? "сегодня — ниже опубликовано" : "сегодня — дальше запланировано"}</div>`;
+      }
+      cells += tile(p, p.status === "planned");
+    });
+    if (firstPastIdx === -1 && seq.length) cells += `<div class="divider">сегодня</div>`;
+
+    return `<div class="stage-bar">
+        <h2 class="section">Сетка профиля</h2>
+        <div class="seg" role="group" aria-label="Порядок">
+          <button data-order="profile" aria-pressed="${state.order === "profile"}">Как в профиле</button>
+          <button data-order="chrono" aria-pressed="${state.order === "chrono"}">По порядку выхода</button>
+        </div>
+        <div class="seg" role="group" aria-label="Подписи">
+          <button data-captions="1" aria-pressed="${state.captions}">С подписями</button>
+          <button data-captions="0" aria-pressed="${!state.captions}">Только обложки</button>
+        </div>
+      </div>
+      <p class="hint">Запланированные плитки можно перетаскивать: даты принадлежат местам в расписании, а посты их занимают. Опубликованное неподвижно.</p>
+      <div class="feed" id="feed" data-captions="${state.captions ? "on" : "off"}">${cells}</div>
+      ${ideas.length ? `<section class="shelf">
+        <div class="shelf-head"><span class="eyebrow">Идеи без даты</span>
+          <span class="hint">Ждут места. У них нет обложки и нет срока — только мысль.</span></div>
+        <div class="feed" data-captions="${state.captions ? "on" : "off"}">${ideas.map(p => tile(p, false)).join("")}</div>
+      </section>` : ""}`;
+  }
+
+  function rowOf(p) {
+    const c = colorOf(p.line);
+    const d = dateOf(p);
+    return `<button class="row" data-id="${p.id}" data-status="${p.status}" style="--line:${c}">
+      <span class="row-thumb" style="${coverCss(p)}"></span>
+      <span class="row-main">
+        <span class="row-h">${p.h}</span>
+        <span class="row-s">${p.s}</span>
+      </span>
+      <span class="row-right">
+        <span class="fmt-sm" title="${FORMATS[p.format].label}">${FORMATS[p.format].icon}</span>
+        ${p.status === "idea" ? "идея" : fmtDay(d)}
+      </span>
+    </button>`;
+  }
+
+  function viewLines() {
+    const posts = visiblePosts();
+    const roots = [...LINES.filter(l => !l.parent), NO_LINE];
+
+    const blocks = roots.map(root => {
+      const kids = LINES.filter(l => l.parent === root.id);
+      const direct = posts.filter(p => p.line === root.id);
+      const inKids = kids.map(k => ({ line: k, items: posts.filter(p => p.line === k.id) }))
+        .filter(g => g.items.length);
+      const total = direct.length + inKids.reduce((n, g) => n + g.items.length, 0);
+      if (!total) return "";
+
+      const byDate = a => a.slice().sort((x, y) => (dateOf(x) || "9999").localeCompare(dateOf(y) || "9999"));
+      const fmtMix = {};
+      for (const p of [...direct, ...inKids.flatMap(g => g.items)]) fmtMix[p.format] = (fmtMix[p.format] || 0) + 1;
+      const mix = Object.entries(fmtMix).map(([k, n]) => `${n} ${FORMATS[k].label.toLowerCase()}`).join(" · ");
+
+      return `<section class="line-block" style="--line:${root.color}">
+        <div class="bar"></div>
+        <div class="inner">
+          <h3 class="line-title">${root.name}</h3>
+          <div class="line-sum">${total} ${plural(total, "пост", "поста", "постов")} · ${mix}${kids.length ? ` · ${inKids.length} ${plural(inKids.length, "ветка", "ветки", "веток")}` : ""}</div>
+          ${direct.length ? `<div class="row-list">${byDate(direct).map(rowOf).join("")}</div>` : ""}
+          ${inKids.map(g => `<div class="sub-line">
+            <div class="sub-line-head"><span class="bead"></span><h4>${g.line.name}</h4>
+              <span class="count">${g.items.length} ${plural(g.items.length, "пост", "поста", "постов")}</span></div>
+            <div class="row-list">${byDate(g.items).map(rowOf).join("")}</div>
+          </div>`).join("")}
+        </div>
+      </section>`;
+    }).join("");
+
+    return `<div class="stage-bar">
+        <h2 class="section">Линии</h2>
+        <p class="hint">Каждая линия — один замысел. Внутри посты стоят по сроку выхода, чтобы видно было, как разворачивается рассказ.</p>
+      </div>
+      <div class="lines">${blocks || `<p class="hint">Всё скрыто фильтрами.</p>`}</div>`;
+  }
+
+  /* Local-time keys throughout: toISOString would shift the day by one
+     for every viewer east of Greenwich. */
+  function toKey(d) {
+    const p = x => String(x).padStart(2, "0");
+    return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+  }
+  function mondayOf(key) {
+    const d = parse(key);
+    d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+    return toKey(d);
+  }
+  function addDays(key, n) {
+    const d = parse(key);
+    d.setDate(d.getDate() + n);
+    return toKey(d);
+  }
+
+  function viewWeeks() {
+    const posts = timeline(visiblePosts());
+    const dated = [...posts.map(p => dateOf(p)), ...LOOSE_STORIES.map(s => s.date), TODAY].filter(Boolean).sort();
+    if (!dated.length) return `<p class="hint">Нечего показать.</p>`;
+
+    const start = mondayOf(dated[0]);
+    const end = mondayOf(dated[dated.length - 1]);
+    const nowWeek = mondayOf(TODAY);
+
+    const rows = [];
+    for (let w = start; w <= end; w = addDays(w, 7)) {
+      const wEnd = addDays(w, 6);
+      const items = posts.filter(p => { const d = dateOf(p); return d >= w && d <= wEnd; });
+      const stories = [
+        ...items.flatMap(p => p.stories.map(s => ({ ...s, on: p.h }))),
+        ...LOOSE_STORIES.filter(s => s.date >= w && s.date <= wEnd).map(s => ({ k: "сама по себе", t: s.t }))
+      ];
+      const m1 = parse(w).getMonth(), m2 = parse(wEnd).getMonth();
+      const when = m1 === m2
+        ? `${parse(w).getDate()}–${parse(wEnd).getDate()} ${MONTHS[m2]}`
+        : `${parse(w).getDate()} ${MONTHS[m1]} – ${parse(wEnd).getDate()} ${MONTHS[m2]}`;
+
+      rows.push(`<section class="week" data-now="${w === nowWeek ? 1 : 0}" data-empty="${items.length || stories.length ? 0 : 1}">
+        <div class="week-when">${when}<span>${w === nowWeek ? "эта неделя" : MONTHS_NOM[m1]}</span></div>
+        <div class="week-body">
+          ${items.length ? `<div class="lane">${items.map(p => {
+            const c = colorOf(p.line);
+            return `<button class="pill" data-id="${p.id}" data-status="${p.status}">
+              <span class="cap" style="background:${c}">${FORMATS[p.format].icon}</span>
+              <span class="txt">${p.h}</span></button>`;
+          }).join("")}</div>` : `<div class="week-empty">Ни одной публикации</div>`}
+          ${stories.length ? `<div class="lane"><span class="lane-label">сторис</span>${stories.map(s =>
+            `<span class="pill story-pill" title="${s.on ? "к посту «" + s.on + "»" : "сама по себе"}">${s.k}: ${s.t}</span>`
+          ).join("")}</div>` : `<div class="lane"><span class="lane-label">сторис</span><span class="week-empty">—</span></div>`}
+        </div>
+      </section>`);
+    }
+
+    return `<div class="stage-bar">
+        <h2 class="section">Срок</h2>
+        <p class="hint">Недели подряд, включая пустые. Дорожка сторис отдельно: сторис живёт сутки, в сетке профиля её нет, а в расписании — есть.</p>
+      </div>
+      <div class="weeks">${rows.join("")}</div>`;
+  }
+
+  function render() {
+    renderRhythm();
+    renderFilters();
+    const html = state.view === "feed" ? viewFeed() : state.view === "lines" ? viewLines() : viewWeeks();
+    stage.innerHTML = html;
+  }
+
+  function switchView(v) {
+    state.view = v;
+    document.querySelectorAll('[role="tab"]').forEach(b =>
+      b.setAttribute("aria-selected", String(b.dataset.view === v)));
+    const go = () => { render(); stage.focus({ preventScroll: true }); };
+    if (document.startViewTransition && !matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      document.startViewTransition(go);
+    } else go();
+  }
+
+  /* ---------------- detail dialog ---------------- */
+
+  const dlg = $("#detail");
+
+  function openDetail(id) {
+    const p = postById(id);
+    if (!p) return;
+    const c = colorOf(p.line);
+    const path = pathOf(p.line);
+    const d = dateOf(p);
+
+    dlg.style.setProperty("--line", c);
+    dlg.innerHTML = `<div class="d-scroll">
+      <div class="d-cover" style="${coverCss(p)}">
+        <span class="rail"></span>
+        <button class="d-close" aria-label="Закрыть" data-close>${I.close}</button>
+      </div>
+      <div class="d-body">
+        <div class="d-path">${path.map((n, i) => i ? `<span class="sep">→</span>${n}` : n).join(" ")}</div>
+        <h2 class="d-h" id="d-h">${p.h}</h2>
+        <p class="d-s">${p.s}</p>
+        <dl class="d-facts">
+          <div class="d-fact"><dt>Формат</dt><dd>${FORMATS[p.format].icon}${FORMATS[p.format].label}</dd></div>
+          <div class="d-fact"><dt>Состояние</dt><dd>${STATUSES[p.status]}</dd></div>
+          <div class="d-fact"><dt>${p.status === "posted" ? "Вышел" : "Выход"}</dt><dd>${p.status === "idea" ? "не назначен" : fmtDay(d)}</dd></div>
+        </dl>
+        ${p.tags.length ? `<div class="d-sub"><div class="eyebrow">Метки</div>
+          <div class="chips">${p.tags.map(t => `<span class="chip" style="cursor:default">${t}</span>`).join("")}</div></div>` : ""}
+        <div class="d-sub">
+          <div class="eyebrow">Сторис к этому посту</div>
+          ${p.stories.length
+            ? `<ul class="d-stories">${p.stories.map(s => `<li><span class="kind">${s.k}</span><span>${s.t}</span></li>`).join("")}</ul>`
+            : `<p class="note">Пока ни одной. Подводка за день до выхода и отсылка в день выхода — то, что обычно просится.</p>`}
+        </div>
+        <div class="d-actions">
+          <button class="btn btn-solid" data-cover="${p.id}">Поставить обложку</button>
+          ${state.covers[p.id] ? `<button class="btn" data-clear="${p.id}">Убрать обложку</button>` : ""}
+          <span class="note">Обложка остаётся только в этом браузере.</span>
+        </div>
+      </div>
+    </div>`;
+    dlg.showModal();
+  }
+
+  dlg.addEventListener("click", e => {
+    if (e.target === dlg) { dlg.close(); return; }
+    const close = e.target.closest("[data-close]");
+    if (close) { dlg.close(); return; }
+    const pick = e.target.closest("[data-cover]");
+    if (pick) { chooseCover(pick.dataset.cover); return; }
+    const clear = e.target.closest("[data-clear]");
+    if (clear) {
+      delete state.covers[clear.dataset.clear];
+      save(); render(); openDetail(clear.dataset.clear);
+    }
+  });
+
+  /* ----- cover upload: downscaled so localStorage can hold it ----- */
+
+  function chooseCover(id) {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = "image/*";
+    input.addEventListener("change", () => {
+      const file = input.files && input.files[0];
+      if (!file) return;
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = () => {
+        const W = 420, H = Math.round(W * img.height / img.width);
+        const cv = document.createElement("canvas");
+        cv.width = W; cv.height = H;
+        cv.getContext("2d").drawImage(img, 0, 0, W, H);
+        URL.revokeObjectURL(url);
+        try {
+          state.covers[id] = cv.toDataURL("image/jpeg", 0.72);
+          save();
+        } catch { /* canvas or storage refused — leave the placeholder */ }
+        render();
+        openDetail(id);
+      };
+      img.onerror = () => URL.revokeObjectURL(url);
+      img.src = url;
+    });
+    input.click();
+  }
+
+  /* ---------------- events ---------------- */
+
+  document.addEventListener("click", e => {
+    const tab = e.target.closest('[role="tab"]');
+    if (tab) { switchView(tab.dataset.view); return; }
+
+    const chip = e.target.closest(".chip[data-group]");
+    if (chip) {
+      const set = state.hidden[chip.dataset.group];
+      const id = chip.dataset.item;
+      set.has(id) ? set.delete(id) : set.add(id);
+      render();
+      return;
+    }
+
+    const bulk = e.target.closest("[data-bulk]");
+    if (bulk) {
+      const key = bulk.dataset.bulk;
+      const ids = key === "format" ? Object.keys(FORMATS)
+        : key === "status" ? Object.keys(STATUSES)
+        : key === "tag" ? ALL_TAGS
+        : [...LINES.filter(l => !l.parent).map(l => l.id), ""];
+      const set = state.hidden[key];
+      const allHidden = ids.every(i => set.has(i));
+      set.clear();
+      if (!allHidden) ids.forEach(i => set.add(i));
+      render();
+      return;
+    }
+
+    const ord = e.target.closest("[data-order]");
+    if (ord) { state.order = ord.dataset.order; render(); return; }
+
+    const cap = e.target.closest("[data-captions]");
+    if (cap) { state.captions = cap.dataset.captions === "1"; render(); return; }
+
+    const open = e.target.closest("[data-id]");
+    if (open && !open.dataset.suppress) openDetail(open.dataset.id);
+  });
+
+  /* ---------------- drag to reorder the schedule ---------------- */
+  /* 1:1 with the pointer, live reorder with a FLIP settle, interruptible. */
+
+  const EASE = "cubic-bezier(.2,.9,.25,1)";
+  const calm = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  let drag = null;
+
+  document.addEventListener("pointerdown", e => {
+    if (e.button !== 0) return;
+    const el = e.target.closest('.tile[data-draggable="1"]');
+    if (!el || state.view !== "feed") return;
+    const feed = el.parentElement;
+    if (!feed || feed.id !== "feed") return;
+
+    drag = {
+      el, feed,
+      pid: e.pointerId,
+      startX: e.clientX, startY: e.clientY,
+      moved: false
+    };
+    el.setPointerCapture(e.pointerId);
+  });
+
+  document.addEventListener("pointermove", e => {
+    if (!drag || e.pointerId !== drag.pid) return;
+    let dx = e.clientX - drag.startX;
+    let dy = e.clientY - drag.startY;
+
+    if (!drag.moved) {
+      if (Math.hypot(dx, dy) < 8) return;
+      drag.moved = true;
+      drag.el.dataset.dragging = "1";
+      drag.el.dataset.suppress = "1";
+    }
+
+    drag.el.style.setProperty("--tx", dx + "px");
+    drag.el.style.setProperty("--ty", dy + "px");
+
+    /* who is the dragged tile sitting on top of now? */
+    const me = drag.el.getBoundingClientRect();
+    const cx = me.left + me.width / 2, cy = me.top + me.height / 2;
+    const siblings = [...drag.feed.querySelectorAll('.tile[data-draggable="1"]')].filter(t => t !== drag.el);
+
+    let best = null, bestD = Infinity;
+    for (const t of siblings) {
+      const r = t.getBoundingClientRect();
+      const d = Math.hypot(r.left + r.width / 2 - cx, r.top + r.height / 2 - cy);
+      if (d < bestD) { bestD = d; best = t; }
+    }
+    if (!best || bestD > me.width * 0.72) return;
+
+    const order = [...drag.feed.children];
+    const from = order.indexOf(drag.el);
+    const to = order.indexOf(best);
+    if (from === to) return;
+
+    /* reorder, then FLIP the displaced tiles and re-anchor our own origin */
+    const before = new Map(order.map(t => [t, t.getBoundingClientRect()]));
+
+    if (from < to) best.after(drag.el); else best.before(drag.el);
+    commitQueue();
+
+    for (const t of drag.feed.children) {
+      if (t === drag.el) continue;
+      const b = before.get(t);
+      if (!b) continue;
+      const a = t.getBoundingClientRect();
+      const ox = b.left - a.left, oy = b.top - a.top;
+      if (!ox && !oy) continue;
+      if (calm()) continue;
+      t.animate(
+        [{ translate: `${ox}px ${oy}px` }, { translate: "0 0" }],
+        { duration: 300, easing: EASE }
+      );
+    }
+
+    /* Our own layout slot moved under us. Shift the origin by exactly how far
+       the tile jumped, so it stays visually under the finger and tracking
+       remains 1:1 through the reorder. */
+    const after = drag.el.getBoundingClientRect();
+    drag.startX += after.left - me.left;
+    drag.startY += after.top - me.top;
+    drag.el.style.setProperty("--tx", (e.clientX - drag.startX) + "px");
+    drag.el.style.setProperty("--ty", (e.clientY - drag.startY) + "px");
+  });
+
+  function endDrag() {
+    if (!drag) return;
+    const el = drag.el;
+    if (drag.moved) {
+      const dx = parseFloat(el.style.getPropertyValue("--tx")) || 0;
+      const dy = parseFloat(el.style.getPropertyValue("--ty")) || 0;
+      delete el.dataset.dragging;
+      el.style.removeProperty("--tx");
+      el.style.removeProperty("--ty");
+      if (!calm() && (dx || dy)) {
+        el.animate(
+          [{ translate: `${dx}px ${dy}px`, scale: 1.035 }, { translate: "0 0", scale: 1 }],
+          { duration: 340, easing: EASE }
+        );
+      }
+      const held = el;
+      setTimeout(() => { delete held.dataset.suppress; }, 0);
+      renderRhythm();
+      refreshDates();
+      save();
+    }
+    drag = null;
+  }
+
+  document.addEventListener("pointerup", endDrag);
+  document.addEventListener("pointercancel", endDrag);
+
+  function commitQueue() {
+    if (!drag) return;
+    const ids = [...drag.feed.querySelectorAll('.tile[data-draggable="1"]')].map(t => t.dataset.id);
+    /* the grid may be reversed on screen; the queue is always chronological */
+    state.queue = state.order === "profile" ? ids.reverse() : ids;
+  }
+
+  function refreshDates() {
+    for (const t of document.querySelectorAll(".tile[data-id]")) {
+      const p = postById(t.dataset.id);
+      const meta = t.querySelector(".tile-meta");
+      if (!p || !meta || p.status === "idea") continue;
+      const line = lineById.get(p.line) || NO_LINE;
+      meta.innerHTML = `<span class="ln">${line.name}</span>· ${fmtDay(dateOf(p))}`;
+    }
+  }
+
+  render();
+</script>
