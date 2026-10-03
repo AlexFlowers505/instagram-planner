@@ -360,6 +360,7 @@
   .strip {
     display: flex;
     align-items: flex-end;
+    --sc-gap: 3px;
     gap: 3px;
     padding-block: 10px 2px;
     overflow-x: auto;
@@ -929,6 +930,161 @@
     .fmt, .d-close { backdrop-filter: none; }
     .fmt { background: #0B0E12; }
   }
+
+  /* ---------- scroll affordance ---------- */
+  /* Container scroll-state queries are Chrome/Edge only. The guidance says a
+     hint may simply be absent elsewhere, so no polyfill: the fade appears
+     where it can and nothing breaks where it cannot. */
+
+  .scroller { container-type: scroll-state; position: relative; }
+
+  .scroller .fade-l,
+  .scroller .fade-r {
+    position: sticky;
+    inset-block: 0;
+    /* The width and the negative margin must cancel: a zero-width box with a
+       negative margin drags the next item out of the container instead of
+       lying over it. */
+    inline-size: 26px;
+    flex: 0 0 26px;
+    opacity: 0;
+    transition: opacity 180ms var(--ease);
+    pointer-events: none;
+    z-index: 2;
+  }
+  /* The negative margin must cancel the fade's own width *and* the row's gap,
+     or the first item sits indented from everything below it. Each scroller
+     states its gap once. */
+  .scroller .fade-l { inset-inline-start: 0; margin-inline-end: calc(-26px - var(--sc-gap, 0px));
+    background: linear-gradient(to right, var(--page), transparent); }
+  .scroller .fade-r { inset-inline-end: 0; margin-inline-start: calc(-26px - var(--sc-gap, 0px));
+    background: linear-gradient(to left, var(--page), transparent); }
+
+  @container scroll-state(scrollable: left) { .fade-l { opacity: 1; } }
+  @container scroll-state(scrollable: right) { .fade-r { opacity: 1; } }
+
+  /* ---------- clash between ориентир and the queue ---------- */
+
+  .cap .m.clash,
+  .row-right .clash { color: var(--warn); }
+
+  .clash-dot {
+    display: inline-block;
+    inline-size: 5px;
+    block-size: 5px;
+    border-radius: 999px;
+    background: var(--warn);
+    vertical-align: 1px;
+    margin-inline-end: 3px;
+  }
+
+  .m .soft { color: var(--ink-28); }
+
+  /* ---------- highlights ---------- */
+
+  .hl-row {
+    display: flex;
+    --sc-gap: 14px;
+    gap: 14px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    padding-block: 2px 14px;
+    max-width: 720px;
+  }
+  .hl-row::-webkit-scrollbar { display: none; }
+
+  .hl {
+    appearance: none;
+    border: 0;
+    background: transparent;
+    font: inherit;
+    color: inherit;
+    cursor: pointer;
+    flex: 0 0 auto;
+    inline-size: 62px;
+    display: grid;
+    justify-items: center;
+    gap: 5px;
+  }
+  .hl:active { scale: .96; }
+  .hl:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; border-radius: 10px; }
+
+  .hl-disc {
+    inline-size: 56px;
+    block-size: 56px;
+    border-radius: 999px;
+    background-size: cover;
+    background-position: center;
+    outline: 1px solid var(--hair);
+    outline-offset: 2px;
+  }
+  .hl[data-assembled="0"] .hl-disc {
+    outline: 1.5px dashed var(--ink-28);
+    opacity: .6;
+  }
+  .hl-name {
+    font-size: 10.5px;
+    color: var(--ink-70);
+    text-align: center;
+    max-inline-size: 62px;
+    overflow: clip;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* in the series view the discs sit in a block with their own label */
+  .hl-block { margin-block-start: 16px; }
+  .hl-block .hl-row { padding-block-end: 0; }
+
+  /* ---------- stories row in a series block ---------- */
+
+  .st-list { display: grid; gap: 2px; margin-block-start: 6px; }
+
+  .st {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 9px;
+    align-items: baseline;
+    padding: 4px 8px;
+    border-radius: 8px;
+    font-size: 12px;
+    color: var(--ink-70);
+  }
+  .st:hover { background: var(--inset); }
+  .st .role {
+    font-size: 9.5px;
+    font-weight: 500;
+    letter-spacing: .05em;
+    text-transform: uppercase;
+    color: var(--ink-28);
+    white-space: nowrap;
+  }
+  .st .when {
+    font-size: 10.5px;
+    color: var(--ink-28);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
+  /* ---------- archived ---------- */
+
+  .tile[data-archived="1"] .cover { opacity: .45; }
+  .arch {
+    position: absolute;
+    inset-block-end: 5px;
+    inset-inline-start: 5px;
+    z-index: 2;
+    font-size: 9px;
+    font-weight: 500;
+    letter-spacing: .05em;
+    text-transform: uppercase;
+    color: #fff;
+    background: #0B0E12A0;
+    backdrop-filter: blur(5px);
+    padding: 1px 6px;
+    border-radius: 999px;
+  }
+  .feed[data-density="flush"] .arch { display: none; }
 </style>
 
 <header class="top">
@@ -942,7 +1098,7 @@
     <div class="qwrap">
       <input id="q" class="qinput" type="search" autocomplete="off" placeholder="Найти пост" />
     </div>
-    <button class="ib" id="filt-btn" popovertarget="filt" aria-label="Фильтры" data-tip="Фильтры"></button>
+    <button class="ib" id="filt-btn" popovertarget="filt" aria-label="Фильтры"></button>
     <button class="ib q" popovertarget="help-board" aria-label="Что это"></button>
   </div>
 </header>
@@ -950,8 +1106,8 @@
 <div class="wrap">
 
   <div class="stale">
-    <span>Прототип от 3 октября 2026 — модель с тех пор ушла вперёд</span>
-    <button class="ib q" popovertarget="help-stale" aria-label="В чём расхождения"></button>
+    <span>Прототип — вход и несколько пользователей не показаны</span>
+    <button class="ib q" popovertarget="help-stale" aria-label="Что ещё не показано"></button>
   </div>
 
   <section class="rhythm">
@@ -960,7 +1116,7 @@
       <button class="ib q" popovertarget="help-rhythm" aria-label="Что показывает полоса"></button>
       <span class="rhythm-note" id="rhythm-note"></span>
     </div>
-    <div class="strip" id="strip" role="list" aria-label="Публикации по порядку выхода"></div>
+    <div class="strip scroller" id="strip" role="list" aria-label="Публикации по порядку выхода"></div>
   </section>
 
   <main id="stage" tabindex="-1"></main>
@@ -973,54 +1129,74 @@
 <div popover id="help-board"><div class="pop">
   <p><b>Доска о составе ленты</b>, а не о публикации. Вопрос, на который она
   отвечает, — хорошо ли посты стоят рядом.</p>
-  <p>Три вида: <b>сетка</b> — как это увидит зритель; <b>серии</b> — как
-  разворачивается замысел; <b>срок</b> — где дырки во времени.</p>
+  <p>Четыре сущности: <b>пост</b>, <b>серия</b>, <b>сторис</b> и
+  <b>актуальное</b>. Три вида: <b>сетка</b> — как это увидит зритель;
+  <b>серии</b> — как разворачивается замысел; <b>срок</b> — где дырки во
+  времени.</p>
 </div></div>
 
 <div popover id="help-stale"><div class="pop">
-  <p>Виды, перетаскивание и полоса ритма здесь актуальны. По устройству данных
-  прав <b>docs/wiki/</b> в проекте, а не этот файл.</p>
-  <p>Расходится в пяти местах: у запланированных постов здесь есть даты,
-  задающие расписание, — теперь дата это <b>необязательный ориентир</b>,
-  который порядком не управляет; у сторис четыре «вида» вместо
-  <b>привязки × роли</b>; <b>актуального</b> нет совсем; нет архива; нет входа
-  и нескольких пользователей.</p>
+  <p>Это макет модели, а не приложение. Чего в нём нет: <b>входа и нескольких
+  пользователей</b> — данные здесь лежат в одном файле и в этом браузере.</p>
+  <p>Всё остальное соответствует тому, что записано в <b>docs/wiki/</b> и в
+  решениях ADR 0003–0005.</p>
 </div></div>
 
 <div popover id="help-rhythm"><div class="pop">
-  <p>Каждая публикация по порядку выхода: цвет — серия, значок — формат,
-  засечка — сегодня, число — пауза длиннее десяти дней.</p>
+  <p>Каждая публикация по порядку: сначала вышедшее по своим датам, потом
+  очередь запланированного. Цвет — серия, значок — формат, засечка — сегодня.</p>
   <p>Рядом то, что глазом не посчитать: набор форматов, самый длинный ряд
-  одного формата и самая длинная пауза. <b>Ряд одного формата и длинная
-  пауза</b> — два основных способа испортить ленту, и оба незаметны, пока их
-  не назовут числом.</p>
+  одного формата и самая длинная пауза. <b>Пауза считается только по
+  вышедшему</b> — у будущего настоящих дат нет.</p>
 </div></div>
 
 <div popover id="help-feed"><div class="pop">
-  <p>Три в ряд, пропорция 4:5, <b>новое слева сверху</b> — ровно так, как это
-  увидит зритель. Запланированное над чертой «сегодня».</p>
+  <p>Три в ряд, пропорция 4:5, <b>новое слева сверху</b> — как увидит зритель.
+  Прошлое стоит по своим датам, будущее — в порядке очереди.</p>
   <p>Горизонтальный кадр обрезается до 4:5, потому что так его обрежет и
   профиль. Полный кадр — в карточке поста, вместе с рамкой того, что лента
   оставит.</p>
-  <p>Три плотности справа: <b>с подписями</b>, <b>только обложки</b> и
-  <b>как в ленте</b> — вплотную и без наших пометок, потому что рейка серии и
-  пунктир запланированного ломают ровно ту иллюзию, ради которой этот режим и
-  нужен.</p>
-  <p>Запланированные плитки перетаскиваются. Опубликованное неподвижно:
-  историю не переставляют.</p>
+  <p>Три плотности справа: <b>с подписями</b>, <b>только обложки</b> и <b>как в
+  ленте</b> — вплотную, без наших пометок и с рядом актуального сверху, потому
+  что посетитель видит кружки раньше постов.</p>
+  <p><b>Перетаскивание меняет очередь, и только её.</b> Ориентиры при этом не
+  едут — поэтому после перестановки может появиться расхождение, и доска его
+  покажет, а не исправит.</p>
+</div></div>
+
+<div popover id="help-clash"><div class="pop">
+  <p><b>Ориентир спорит с очередью.</b> Ориентир — это не расписание, а
+  прикидка: насколько вперёд набрано и когда это примерно выйдет. Порядком он
+  не управляет, поэтому разойтись с очередью может, и это нормально.</p>
+  <p>Доска показывает два случая: пост стоит в очереди раньше соседа, а намечен
+  на более позднее число; и ориентир уже в прошлом, а пост не выложен.</p>
+  <p>Исправлять она не пытается: что именно ты имел в виду, знаешь только ты.</p>
 </div></div>
 
 <div popover id="help-series"><div class="pop">
   <p>Каждая серия — блок, сюжеты внутри — подблоками, посты по порядку выхода.</p>
   <p><b>Конечную</b> серию доводят до финала; <b>рубрику</b> подсыпают между
   плотными кусками, и она не кончается никогда.</p>
+  <p>Под постами — <b>сторис серии</b> и <b>актуальное</b>. Без первой строки
+  закулисье без даты было бы невидимо нигде.</p>
+</div></div>
+
+<div popover id="help-highlights"><div class="pop">
+  <p><b>Актуальное — не серия.</b> «Пекин» совпадает с серией, «Обо мне» серии
+  не имеет вовсе (постов там нет), «Еда» пересекает несколько. Поэтому это своя
+  вещь с необязательной ссылкой на серию.</p>
+  <p>Пунктирный кружок — <b>задумано, но не собрано</b>.</p>
 </div></div>
 
 <div popover id="help-weeks"><div class="pop">
   <p>Недели подряд, <b>включая пустые</b>: пустая неделя — такой же факт, как
   заполненная.</p>
-  <p>У сторис своя дорожка. Сторис живёт сутки, поэтому в сетке профиля её нет
-  вообще — а здесь дата что-то значит.</p>
+  <p><b>Две независимые строки</b> — «ни одной публикации» и «ни одной
+  сторис». Это разные дырки, и месяц сторис без единого поста не должен
+  выглядеть благополучно.</p>
+  <p>Запланированный пост попадает сюда, только если у него есть ориентир.
+  Сторис без своей даты берёт день от поста по роли: подводка за день до,
+  отсылка в день выхода. Такой день помечен <b>~</b> — он выведен, а не задан.</p>
 </div></div>
 
 <dialog id="detail" aria-labelledby="d-h"></dialog>
@@ -1036,7 +1212,7 @@
   "use strict";
 
   const TODAY = "2026-10-03";
-  const STORE = "feed-board-v1";
+  const STORE = "feed-board-v2";
 
   /* Every piece of user text goes through this on its way into markup. In an
      attribute a bare quote escapes the attribute; in text a bare `<` eats the
@@ -1066,23 +1242,21 @@
     carousel: { label: "Карусель", icon: I.carousel },
     single: { label: "Одно фото", icon: I.single }
   };
-
   const FORM_WORDS = {
     carousel: ["карусель", "карусели", "каруселей"],
     single: ["фото", "фото", "фото"],
     reel: ["рилс", "рилса", "рилсов"]
   };
-
   const STATUSES = { posted: "Опубликован", planned: "Запланирован", idea: "Идея" };
+  const ROLES = { teaser: "подводка", pointer: "отсылка", behind: "закулисье" };
 
-  /* One axis: how much is shown around the picture. */
   const DENSITIES = [
     { id: "captions", icon: I.type, title: "С подписями" },
     { id: "covers", icon: I.grid, title: "Только обложки" },
-    { id: "flush", icon: I.flush, title: "Как в ленте — вплотную, без наших пометок" }
+    { id: "flush", icon: I.flush, title: "Как в ленте — вплотную, с актуальным сверху" }
   ];
 
-  /* ----- data ----- */
+  /* ---------------- data: four entities ---------------- */
 
   const SERIES = [
     { id: "cn", name: "Пекин", color: "#B8422F", kind: "finite" },
@@ -1092,71 +1266,89 @@
     { id: "duo", name: "Мы вдвоём", color: "#7D6AA8", kind: "rubric" },
     { id: "places", name: "Я и места", color: "#3E7C8C", kind: "rubric" }
   ];
-
   const NO_SERIES = { id: "", name: "Вне серий", color: "#8C949E", kind: "rubric" };
 
+  /* `date` is the real publication day and exists only on a posted one.
+     `target` is the ориентир: optional, drives nothing, kept after publishing
+     so «собирался 7-го, выложил 12-го» stays visible. */
   const POSTS = [
-    { id: "p01", series: "places", format: "single", status: "posted", date: "2026-08-22",
+    { id: "p01", series: "places", format: "single", status: "posted", date: "2026-08-22", archived: true,
       h: "Лучший суп в моей жизни был в подвале",
       s: "Случайная забегаловка на две табуретки, вывеска от руки. Фото на вытянутой руке, лицо — отдельный жанр.",
-      tags: ["смешное", "я в кадре", "еда"],
-      stories: [{ k: "отсылка", t: "Скрин вывески со стрелкой на пост" }] },
+      tags: ["смешное", "я в кадре", "еда"] },
     { id: "p02", series: "duo", format: "single", status: "posted", date: "2026-08-30",
       h: "Мы и очень большой десерт",
       s: "Взяли один на двоих, съели каждый свой. Тёплый кадр, ничего не планировали, и поэтому он работает.",
-      tags: ["тёплое", "я в кадре", "вдвоём"], stories: [] },
-    { id: "p03", series: "cn-jingshan", format: "carousel", status: "posted", date: "2026-09-12",
+      tags: ["тёплое", "я в кадре", "вдвоём"] },
+    { id: "p03", series: "cn-jingshan", format: "carousel", status: "posted", date: "2026-09-12", target: "2026-09-10",
       h: "Парк, в который приходят жить",
       s: "Цзиншань целиком: пионы, фудкорты, люди в костюмах династии, бабушки с веерами и мужчина, который поёт у стены каждое утро. Десять кадров, чтобы стало понятно: это не музей, а район.",
-      tags: ["люди", "цвет", "день"],
-      stories: [{ k: "подводка", t: "Опрос: Гугун или парк напротив?" },
-                { k: "закулисье", t: "Как я десять минут ждал, пока уйдут из кадра" }] },
+      tags: ["люди", "цвет", "день"] },
     { id: "p04", series: "cn-jingshan", format: "carousel", status: "posted", date: "2026-09-18",
       h: "Павильон Ваньчунь",
       s: "Самая высокая точка старого Пекина. Вид на Гугун сверху, очередь на подъём и почему сюда идут именно к закату.",
-      tags: ["вид", "архитектура", "закат"],
-      stories: [{ k: "отсылка", t: "Вид сверху вертикально, в посте ещё восемь" }] },
+      tags: ["вид", "архитектура", "закат"] },
     { id: "p05", series: "cn-food", format: "carousel", status: "posted", date: "2026-09-26",
       h: "Я не прочитал ни одного меню",
       s: "Утка, лапша с кунжутной пастой, баоцзы на пару и штука, название которой я до сих пор не знаю. Заказывал пальцем.",
-      tags: ["еда", "цвет", "смешное"], stories: [] },
+      tags: ["еда", "цвет", "смешное"] },
     { id: "p06", series: "cn", format: "reel", status: "posted", date: "2026-10-01",
       h: "Пекин на скорости",
       s: "Монтаж из метро, хутунов и вечерней Ванфуцзин. Двадцать секунд, чтобы было понятно, какой это город.",
-      tags: ["движение", "город"],
-      stories: [{ k: "подводка", t: "Три секунды из монтажа, без звука" }] },
-    { id: "p07", series: "cn-jingshan", format: "carousel", status: "planned", date: "2026-10-07",
+      tags: ["движение", "город"] },
+
+    /* The ориентир on p07 has already passed, and p08 is ahead of p09 in the
+       queue while aiming later — the two clashes the board is built to show. */
+    { id: "p07", series: "cn-jingshan", format: "carousel", status: "planned", target: "2026-10-02",
       h: "Вечерняя архитектура Цзиншаня",
       s: "Те же постройки после заката: подсветка, красные колонны, пустые дорожки, синий воздух. Снимал в последний вечер.",
-      tags: ["архитектура", "вечер", "цвет"], stories: [] },
-    { id: "p08", series: "cn-night", format: "reel", status: "planned", date: "2026-10-12",
+      tags: ["архитектура", "вечер", "цвет"] },
+    { id: "p08", series: "cn-night", format: "reel", status: "planned", target: "2026-10-20",
       h: "Что мы делали ночами",
       s: "Ночной Пекин: барахолка, караоке, велосипеды в три часа и очередь за шашлыком. Самый быстрый монтаж из всей поездки.",
-      tags: ["движение", "ночь", "смешное"],
-      stories: [{ k: "подводка", t: "Кадр с караоке, вопрос «угадай город»" },
-                { k: "подводка", t: "Обратный отсчёт за сутки" }] },
-    { id: "p09", series: "cn-night", format: "carousel", status: "planned", date: "2026-10-17",
+      tags: ["движение", "ночь", "смешное"] },
+    { id: "p09", series: "cn-night", format: "carousel", status: "planned", target: "2026-10-17",
       h: "Люди ночного Пекина",
       s: "Портреты тех, кого встретили: таксист, продавец шашлыков, две девушки с гитарой у перехода. Снято на 35 мм, почти без света.",
-      tags: ["люди", "ночь"], stories: [] },
-    { id: "p10", series: "cn", format: "single", status: "planned", date: "2026-10-23",
+      tags: ["люди", "ночь"] },
+    { id: "p10", series: "cn", format: "single", status: "planned",
       h: "Один кадр, который всё объясняет",
       s: "Финал серии про Пекин. Одно фото, подпись в три строки, больше ничего — после четырёх каруселей нужна пауза.",
-      tags: ["тихое", "город"], stories: [] },
-    { id: "p11", series: "duo", format: "reel", status: "idea", date: "",
+      tags: ["тихое", "город"] },
+
+    { id: "p11", series: "duo", format: "reel", status: "idea",
       h: "Как мы собирались в поездку",
       s: "Короткий смешной монтаж из домашних съёмок до отлёта. Хорошо встал бы перед началом китайской серии.",
-      tags: ["смешное", "вдвоём", "движение"], stories: [] },
-    { id: "p12", series: "", format: "single", status: "idea", date: "",
+      tags: ["смешное", "вдвоём", "движение"] },
+    { id: "p12", series: "", format: "single", status: "idea",
       h: "Я и кофе в семь утра",
       s: "Просто хороший кадр без повода. Держу как разрядку между плотными сериями — вставить туда, где две карусели подряд.",
-      tags: ["тихое", "я в кадре"], stories: [] }
+      tags: ["тихое", "я в кадре"] }
   ];
 
-  const LOOSE_STORIES = [
-    { date: "2026-09-08", t: "Сборы, чемодан, паспорт — за четыре дня до вылета" },
-    { date: "2026-09-21", t: "Прогулка по хутунам, ничего не вышло в пост" },
-    { date: "2026-10-02", t: "Отвечаю на вопросы про визу" }
+  /* A story is an issue, not a slide. Two independent axes: what it hangs off
+     (post / series / nothing) and what it is for (role, optional). */
+  const STORIES = [
+    { id: "s01", attachKind: "post", attachId: "p01", role: "pointer", t: "Скрин вывески со стрелкой на пост" },
+    { id: "s02", attachKind: "post", attachId: "p03", role: "teaser", t: "Опрос: Гугун или парк напротив?" },
+    { id: "s03", attachKind: "post", attachId: "p03", role: "behind", t: "Как я десять минут ждал, пока уйдут из кадра" },
+    { id: "s04", attachKind: "post", attachId: "p04", role: "pointer", t: "Вид сверху вертикально, в посте ещё восемь" },
+    { id: "s05", attachKind: "post", attachId: "p06", role: "teaser", t: "Три секунды из монтажа, без звука" },
+    { id: "s06", attachKind: "post", attachId: "p08", role: "teaser", t: "Кадр с караоке, вопрос «угадай город»" },
+    { id: "s07", attachKind: "post", attachId: "p08", role: "teaser", t: "Обратный отсчёт за сутки" },
+    { id: "s08", attachKind: "series", attachId: "cn", role: "behind", t: "Как собиралась вся поездка: маршрут, визы и что не влезло" },
+    { id: "s09", attachKind: "series", attachId: "cn", role: "pointer", t: "Серия про Пекин закончилась — все посты подряд" },
+    { id: "s10", attachKind: null, attachId: "", role: null, date: "2026-09-08", t: "Сборы, чемодан, паспорт" },
+    { id: "s11", attachKind: null, attachId: "", role: null, date: "2026-09-21", t: "Прогулка по хутунам, ничего не вышло в пост" },
+    { id: "s12", attachKind: null, attachId: "", role: null, date: "2026-10-02", t: "Отвечаю на вопросы про визу" }
+  ];
+
+  /* The three cases that prove a highlight is not a series: one matches a
+     series, one cannot have one, one crosses several. */
+  const HIGHLIGHTS = [
+    { id: "h1", name: "Пекин", seriesId: "cn", assembled: false, storyIds: ["s02", "s03", "s04", "s05", "s08"] },
+    { id: "h2", name: "Обо мне", seriesId: "", assembled: true, storyIds: ["s12"] },
+    { id: "h3", name: "Еда", seriesId: "", assembled: true, storyIds: ["s01"] }
   ];
 
   /* ----- derived ----- */
@@ -1177,11 +1369,16 @@
     return out;
   }
 
+  const postById = id => POSTS.find(p => p.id === id);
+  const storyById = id => STORIES.find(s => s.id === id);
+  const storiesOfPost = id => STORIES.filter(s => s.attachKind === "post" && s.attachId === id);
+  const storiesOfSeries = id => STORIES.filter(s => s.attachKind === "series" && s.attachId === id);
+  const highlightsWith = sid => HIGHLIGHTS.filter(h => h.storyIds.includes(sid));
+
   const TAG_COUNTS = new Map();
   for (const p of POSTS) for (const t of p.tags) TAG_COUNTS.set(t, (TAG_COUNTS.get(t) || 0) + 1);
   const ALL_TAGS = [...TAG_COUNTS.keys()].sort((a, b) =>
     (TAG_COUNTS.get(b) - TAG_COUNTS.get(a)) || a.localeCompare(b, "ru"));
-
   const TAGS_SHOWN = 12;
 
   /* ----- state ----- */
@@ -1205,28 +1402,26 @@
     density: "captions",
     q: "",
     allTags: false,
+    showArchived: false,
     queue: [...savedQueue, ...plannedIds.filter(id => !savedQueue.includes(id))],
     covers: (saved.covers && typeof saved.covers === "object") ? saved.covers : {},
     hidden: { format: new Set(), series: new Set(), status: new Set(), tag: new Set() }
   };
 
-  const SLOTS = POSTS.filter(p => p.status === "planned").map(p => p.date).sort();
-  const postById = id => POSTS.find(p => p.id === id);
-
-  function dateOf(p) {
-    if (p.status !== "planned") return p.date;
-    const i = state.queue.indexOf(p.id);
-    return i >= 0 ? SLOTS[i] : p.date;
-  }
-
-  /* ----- formatting ----- */
+  /* ----- dates: the ориентир drives nothing ----- */
 
   const MONTHS = ["янв.", "февр.", "мар.", "апр.", "мая", "июня", "июля", "авг.", "сент.", "окт.", "нояб.", "дек."];
   const MONTHS_NOM = ["январь", "февраль", "март", "апрель", "май", "июнь", "июль", "август", "сентябрь", "октябрь", "ноябрь", "декабрь"];
 
   const parse = key => { const [y, m, d] = key.split("-").map(Number); return new Date(y, m - 1, d); };
-  const fmtDay = key => key ? parse(key).getDate() + " " + MONTHS[parse(key).getMonth()] : "без даты";
+  const fmtDay = key => key ? parse(key).getDate() + " " + MONTHS[parse(key).getMonth()] : "";
   const daysBetween = (a, b) => Math.round((parse(b) - parse(a)) / 86400000);
+
+  /* Local-time keys throughout: toISOString would shift the day by one for
+     every viewer east of Greenwich. */
+  const toKey = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  function mondayOf(key) { const d = parse(key); d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); return toKey(d); }
+  function addDays(key, n) { const d = parse(key); d.setDate(d.getDate() + n); return toKey(d); }
 
   function plural(n, one, few, many) {
     const m100 = n % 100, m10 = n % 10;
@@ -1235,11 +1430,39 @@
     return many;
   }
 
-  /* Local-time keys throughout: toISOString would shift the day by one for
-     every viewer east of Greenwich. */
-  const toKey = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-  function mondayOf(key) { const d = parse(key); d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); return toKey(d); }
-  function addDays(key, n) { const d = parse(key); d.setDate(d.getDate() + n); return toKey(d); }
+  /* The day a post sits on: the real one if it went out, otherwise its
+     ориентир, which may well be absent. */
+  const shownDate = p => p.status === "posted" ? (p.date || "") : (p.target || "");
+
+  /* Two ways an ориентир can argue with the queue. The board says so and
+     changes nothing — which of the two was meant is not its to decide. */
+  function clashesOf(p) {
+    if (p.status !== "planned" || !p.target) return [];
+    const out = [];
+    if (p.target < TODAY) out.push("ориентир уже в прошлом, а пост не выложен");
+    const i = state.queue.indexOf(p.id);
+    for (let j = i + 1; j < state.queue.length; j++) {
+      const q = postById(state.queue[j]);
+      if (q && q.target && q.target < p.target) {
+        out.push(`стоит в очереди раньше, чем «${q.h}», но намечен позже`);
+        break;
+      }
+    }
+    return out;
+  }
+
+  /* Prose for a story's day. Derived days are marked, because a day that was
+     worked out from a post is not a day anybody chose. */
+  function storyDay(s) {
+    if (s.date) return { day: s.date, derived: false };
+    if (s.attachKind === "post") {
+      const p = postById(s.attachId);
+      const d = p ? shownDate(p) : "";
+      if (d && s.role === "teaser") return { day: addDays(d, -1), derived: true };
+      if (d && s.role === "pointer") return { day: d, derived: true };
+    }
+    return { day: "", derived: false };
+  }
 
   /* ----- covers ----- */
 
@@ -1251,10 +1474,9 @@
 
   /* A placeholder is not a picture and should not pretend to be one. It is a
      light tint of the series colour, so a wall of them reads as empty frames
-     waiting for photos rather than as a wall of heavy blobs. The series is
-     carried at full strength by the rail, not by this. */
-  function gradientOf(p) {
-    const c = colorOf(p.series), h = hash(p.id);
+     waiting for photos rather than as a wall of heavy blobs. */
+  function gradientOf(seed, color) {
+    const c = color || NO_SERIES.color, h = hash(seed);
     const x1 = 18 + (h % 46), y1 = 12 + ((h >> 3) % 42);
     const x2 = 52 + ((h >> 6) % 38), y2 = 52 + ((h >> 9) % 40);
     const ang = (h >> 12) % 360;
@@ -1263,28 +1485,22 @@
       linear-gradient(${ang}deg, color-mix(in oklab, ${c} 14%, var(--surface)) 0%, color-mix(in oklab, ${c} 27%, var(--surface)) 100%)`;
   }
 
-  /* An uploaded cover is a real photo of any shape and goes in an <img> that
-     the 4:5 box crops. A placeholder has no shape, so it is a background. */
-  function coverInner(p) {
-    const own = state.covers[p.id];
-    if (own) return `<img src="${esc(own)}" alt="" loading="lazy" />`;
-    return "";
-  }
+  const coverInner = p => state.covers[p.id] ? `<img src="${esc(state.covers[p.id])}" alt="" loading="lazy" />` : "";
   function coverStyle(p) {
-    if (state.covers[p.id]) return "";
-    if (p.status === "idea") return "";
-    return `background-image:${gradientOf(p)}`;
+    if (state.covers[p.id] || p.status === "idea") return "";
+    return `background-image:${gradientOf(p.id, colorOf(p.series))}`;
   }
 
   /* ----- filtering ----- */
 
   function haystack(p) {
-    return [p.h, p.s, ...pathOf(p.series), ...p.tags, ...p.stories.map(s => s.k + " " + s.t)]
+    return [p.h, p.s, ...pathOf(p.series), ...p.tags, ...storiesOfPost(p.id).map(s => (ROLES[s.role] || "") + " " + s.t)]
       .join(" ").toLowerCase();
   }
 
   function visible(p) {
     const h = state.hidden;
+    if (p.archived && !state.showArchived) return false;
     if (h.format.has(p.format)) return false;
     if (h.status.has(p.status)) return false;
     if (h.series.has(rootOf(p.series).id)) return false;
@@ -1293,40 +1509,46 @@
     return true;
   }
   const visiblePosts = () => POSTS.filter(visible);
-  const hiddenCount = () => Object.values(state.hidden).reduce((n, s) => n + s.size, 0);
+  const hiddenCount = () => Object.values(state.hidden).reduce((n, s) => n + s.size, 0) + (state.showArchived ? 0 : 1);
 
-  const timeline = posts => posts.filter(p => p.status !== "idea").slice()
-    .sort((a, b) => dateOf(a).localeCompare(dateOf(b)));
+  /* The past is ordered by when it happened, the future by the queue. There is
+     no single date axis any more, and that is the point of ADR 0003. */
+  function feedChron(posts) {
+    const postedSet = posts.filter(p => p.status === "posted").sort((a, b) => a.date.localeCompare(b.date));
+    const ids = new Set(posts.map(p => p.id));
+    const planned = state.queue.map(postById).filter(p => p && ids.has(p.id));
+    return [...postedSet, ...planned];
+  }
 
   /* ---------------- rendering ---------------- */
 
   const $ = sel => document.querySelector(sel);
   const stage = $("#stage");
+  const fades = `<span class="fade-l"></span><span class="fade-r"></span>`;
 
   function fmtGlyph(format, cls) {
     const f = FORMATS[format];
     return `<span class="${cls}" title="${f.label}" aria-label="${f.label}">${f.icon}</span>`;
   }
 
-  /* ----- rhythm ----- */
-
   function renderRhythm() {
-    const chron = timeline(visiblePosts());
-    let html = "", drewNow = false, prev = null;
+    const chron = feedChron(visiblePosts());
+    let html = `<span class="fade-l"></span>`, drewNow = false, prev = null;
 
     for (const p of chron) {
-      const d = dateOf(p);
-      if (prev) {
+      const d = shownDate(p);
+      if (prev && d && p.status === "posted") {
         const gap = daysBetween(prev, d);
         if (gap >= 10) html += `<span class="gap-mark" title="${gap} ${plural(gap, "день", "дня", "дней")} без публикаций">${gap}д</span>`;
       }
-      if (!drewNow && d > TODAY) { html += `<span class="now-tick" role="separator" title="сегодня"></span>`; drewNow = true; }
+      if (!drewNow && p.status !== "posted") { html += `<span class="now-tick" role="separator" title="сегодня"></span>`; drewNow = true; }
+      const label = d ? fmtDay(d) : "без ориентира";
       html += `<button class="mark" role="listitem" data-id="${p.id}" data-status="${p.status}"
-        style="background:${colorOf(p.series)}" title="${esc(fmtDay(d) + " · " + FORMATS[p.format].label + " · " + p.h)}">${FORMATS[p.format].icon}</button>`;
-      prev = d;
+        style="background:${colorOf(p.series)}" title="${esc(label + " · " + FORMATS[p.format].label + " · " + p.h)}">${FORMATS[p.format].icon}</button>`;
+      if (p.status === "posted") prev = d;
     }
     if (!drewNow) html += `<span class="now-tick" role="separator" title="сегодня"></span>`;
-    $("#strip").innerHTML = html;
+    $("#strip").innerHTML = html + `<span class="fade-r"></span>`;
 
     const counts = { carousel: 0, single: 0, reel: 0 };
     for (const p of visiblePosts()) counts[p.format]++;
@@ -1336,9 +1558,11 @@
       if (p.format === cur) run++; else { cur = p.format; run = 1; }
       if (run > bestRun) { bestRun = run; bestFmt = cur; }
     }
+    /* Only the past has real dates, so only the past has a real pause. */
+    const posted = chron.filter(p => p.status === "posted");
     let bestGap = 0;
-    for (let i = 1; i < chron.length; i++) {
-      const g = daysBetween(dateOf(chron[i - 1]), dateOf(chron[i]));
+    for (let i = 1; i < posted.length; i++) {
+      const g = daysBetween(posted[i - 1].date, posted[i].date);
       if (g > bestGap) bestGap = g;
     }
 
@@ -1374,8 +1598,9 @@
     const shown = state.allTags ? ALL_TAGS : ALL_TAGS.slice(0, TAGS_SHOWN);
     const rest = ALL_TAGS.length - shown.length;
     const tags = shown.map(t => ({ id: t, name: t, n: TAG_COUNTS.get(t) }));
+    const archived = POSTS.filter(p => p.archived).length;
 
-    const n = hiddenCount();
+    const hid = Object.values(state.hidden).reduce((n, s) => n + s.size, 0);
     $("#filt-body").innerHTML = `
       <div class="fgrp"><div class="flabel">Формат</div>${chipRow("format", fmt)}</div>
       <div class="fgrp"><div class="flabel">Состояние</div>${chipRow("status", st)}</div>
@@ -1385,36 +1610,64 @@
           ${rest > 0 || state.allTags ? `<button class="more" data-alltags>${state.allTags ? "короче" : `ещё ${rest}`}</button>` : ""}
         </div>${chipRow("tag", tags, "scroll")}
       </div>
+      <div class="fgrp">
+        <div class="flabel">Архив</div>
+        <div class="chips"><button class="chip" aria-pressed="${state.showArchived}" data-arch>
+          показывать архив<span class="n">${archived}</span></button></div>
+      </div>
       <div class="fbar">
-        <span class="note">${n ? `${n} ${plural(n, "скрыт", "скрыто", "скрыто")}` : "ничего не скрыто"}</span>
+        <span class="note">${hid ? `${hid} ${plural(hid, "скрыт", "скрыто", "скрыто")}` : "ничего не скрыто"}</span>
         <button class="btn btn-ghost" data-reset style="margin-inline-start:auto">Сбросить</button>
       </div>`;
 
     const btn = $("#filt-btn");
-    btn.innerHTML = I.filter + (n ? `<span class="dot"></span>` : "");
-    btn.setAttribute("aria-label", n ? `Фильтры, ${n} скрыто` : "Фильтры");
+    btn.innerHTML = I.filter + (hid || state.showArchived ? `<span class="dot"></span>` : "");
+    btn.setAttribute("aria-label", hid ? `Фильтры, ${hid} скрыто` : "Фильтры");
   }
 
   /* ----- tile ----- */
 
+  function metaOf(p) {
+    if (p.status === "idea") return "";
+    if (p.status === "posted") return { html: fmtDay(p.date), clash: false, title: "" };
+    const cl = clashesOf(p);
+    if (!p.target) return { html: `<span class="soft">без ориентира</span>`, clash: false, title: "Ориентира нет — пост просто стоит в очереди" };
+    return {
+      html: `${cl.length ? `<span class="clash-dot"></span>` : ""}~${fmtDay(p.target)}`,
+      clash: cl.length > 0,
+      title: cl.length ? cl.join("; ") : "Ориентир — прикидка, порядком не управляет"
+    };
+  }
+
   function tile(p, draggable) {
     const c = colorOf(p.series);
-    const d = dateOf(p);
-    const ticks = p.stories.map(() => "<i></i>").join("");
+    const n = storiesOfPost(p.id).length;
+    const ticks = Array.from({ length: n }, () => "<i></i>").join("");
+    const m = metaOf(p);
     const tip = pathOf(p.series).join(" → ") + " · " + FORMATS[p.format].label;
-    return `<button class="tile" data-id="${p.id}" data-status="${p.status}"
+    return `<button class="tile" data-id="${p.id}" data-status="${p.status}" data-archived="${p.archived ? 1 : 0}"
       ${draggable ? 'data-draggable="1"' : ""} style="--line:${c}" title="${esc(tip)}">
       <span class="cover" style="${coverStyle(p)}">
         ${coverInner(p)}
         ${p.status === "idea" ? `<span class="idea-glyph">${I.idea}</span>` : ""}
         <span class="rail"></span>
-        ${ticks ? `<span class="ticks" title="${p.stories.length} ${plural(p.stories.length, "сторис", "сторис", "сторис")}">${ticks}</span>` : ""}
+        ${ticks ? `<span class="ticks" title="${n} ${plural(n, "сторис", "сторис", "сторис")}">${ticks}</span>` : ""}
+        ${p.archived ? `<span class="arch">архив</span>` : ""}
         ${fmtGlyph(p.format, "fmt")}
       </span>
       <span class="cap">
         <span class="t">${esc(p.h)}</span>
-        ${p.status === "idea" ? "" : `<span class="m">${fmtDay(d)}</span>`}
+        ${m ? `<span class="m${m.clash ? " clash" : ""}" title="${esc(m.title)}">${m.html}</span>` : ""}
       </span>
+    </button>`;
+  }
+
+  function hlDisc(h) {
+    const color = h.seriesId ? colorOf(h.seriesId) : NO_SERIES.color;
+    return `<button class="hl" data-hl="${h.id}" data-assembled="${h.assembled ? 1 : 0}"
+      title="${esc(h.name + " · " + (h.assembled ? "собрано" : "задумано, но не собрано") + " · " + h.storyIds.length + " " + plural(h.storyIds.length, "сторис", "сторис", "сторис"))}">
+      <span class="hl-disc" style="background-image:${gradientOf(h.id, color)}"></span>
+      <span class="hl-name">${esc(h.name)}</span>
     </button>`;
   }
 
@@ -1422,10 +1675,10 @@
 
   function viewFeed() {
     const posts = visiblePosts();
-    const chron = timeline(posts);
+    const chron = feedChron(posts);
     const ideas = posts.filter(p => p.status === "idea");
     const seq = state.order === "profile" ? chron.slice().reverse() : chron;
-    const firstPast = seq.findIndex(p => state.order === "profile" ? dateOf(p) <= TODAY : dateOf(p) > TODAY);
+    const firstPast = seq.findIndex(p => state.order === "profile" ? p.status === "posted" : p.status !== "posted");
 
     let cells = "";
     seq.forEach((p, i) => {
@@ -1434,10 +1687,14 @@
     });
     if (firstPast === -1 && seq.length) cells += `<div class="divider">сегодня</div>`;
 
+    const anyClash = posts.some(p => clashesOf(p).length);
+
     return `<div class="stage-bar">
         <h2 class="section">Сетка профиля</h2>
         <button class="ib q" popovertarget="help-feed" aria-label="Как читать сетку">${I.help}</button>
         <span class="count">${seq.length}</span>
+        ${anyClash ? `<button class="ib q" popovertarget="help-clash" aria-label="Что значит красное"
+          style="color:var(--warn)">${I.help}</button>` : ""}
         <span style="flex:1"></span>
         <button class="ib" data-order aria-pressed="${state.order === "chrono"}"
           title="${state.order === "profile" ? "Сейчас как в профиле — развернуть по порядку выхода" : "Сейчас по порядку выхода — вернуть как в профиле"}">${I.order}</button>
@@ -1446,6 +1703,7 @@
             title="${d.title}" aria-label="${d.title}">${d.icon}</button>`).join("")}
         </div>
       </div>
+      ${state.density === "flush" && HIGHLIGHTS.length ? `<div class="hl-row scroller">${fades}${HIGHLIGHTS.map(hlDisc).join("")}</div>` : ""}
       <div class="feed" id="feed" data-density="${state.density}">${cells}</div>
       ${ideas.length && state.density !== "flush" ? `<section class="shelf">
         <div class="shelf-head"><span class="eyebrow">Идеи без даты</span><span class="count">${ideas.length}</span></div>
@@ -1454,14 +1712,25 @@
   }
 
   function rowOf(p) {
+    const m = metaOf(p);
     return `<button class="row" data-id="${p.id}" data-status="${p.status}" style="--line:${colorOf(p.series)}">
       <span class="row-thumb" style="${coverStyle(p)}">${coverInner(p)}</span>
       <span class="row-main">
         <span class="row-h">${esc(p.h)}</span>
         <span class="row-s">${esc(p.s)}</span>
       </span>
-      <span class="row-right">${FORMATS[p.format].icon}${p.status === "idea" ? "идея" : fmtDay(dateOf(p))}</span>
+      <span class="row-right">${FORMATS[p.format].icon}<span class="${m && m.clash ? "clash" : ""}">${m ? m.html : "идея"}</span></span>
     </button>`;
+  }
+
+  function storyLine(s) {
+    const { day, derived } = storyDay(s);
+    const inHl = highlightsWith(s.id);
+    return `<div class="st" title="${esc(inHl.length ? "в актуальном: " + inHl.map(h => h.name).join(", ") : "ни в одном актуальном")}">
+      <span class="role">${s.role ? ROLES[s.role] : "—"}</span>
+      <span>${esc(s.t)}</span>
+      <span class="when">${day ? (derived ? "~" : "") + fmtDay(day) : "без дня"}</span>
+    </div>`;
   }
 
   function viewSeries() {
@@ -1473,9 +1742,11 @@
       const direct = posts.filter(p => p.series === root.id);
       const inKids = kids.map(k => ({ line: k, items: posts.filter(p => p.series === k.id) })).filter(g => g.items.length);
       const total = direct.length + inKids.reduce((n, g) => n + g.items.length, 0);
-      if (!total) return "";
+      const st = storiesOfSeries(root.id);
+      const hl = HIGHLIGHTS.filter(h => h.seriesId === root.id);
+      if (!total && !st.length && !hl.length) return "";
 
-      const byDate = a => a.slice().sort((x, y) => (dateOf(x) || "9999").localeCompare(dateOf(y) || "9999"));
+      const byDate = a => a.slice().sort((x, y) => (shownDate(x) || "9999").localeCompare(shownDate(y) || "9999"));
       const mix = {};
       for (const p of [...direct, ...inKids.flatMap(g => g.items)]) mix[p.format] = (mix[p.format] || 0) + 1;
       const mixText = Object.entries(mix).map(([k, n]) => `${n} ${FORMATS[k].label.toLowerCase()}`).join(" · ");
@@ -1484,27 +1755,54 @@
         <div class="sbar"></div>
         <div class="sinner">
           <h3 class="stitle">${esc(root.name)}<span class="kind">${root.kind === "rubric" ? "рубрика" : "конечная"}</span></h3>
-          <div class="ssum">${total} ${plural(total, "пост", "поста", "постов")} · ${mixText}</div>
+          <div class="ssum">${total} ${plural(total, "пост", "поста", "постов")}${mixText ? " · " + mixText : ""}</div>
           ${direct.length ? `<div class="rows">${byDate(direct).map(rowOf).join("")}</div>` : ""}
           ${inKids.map(g => `<div class="plot">
             <div class="plot-head"><span class="bead"></span><h4>${esc(g.line.name)}</h4>
               <span class="count">${g.items.length}</span></div>
             <div class="rows">${byDate(g.items).map(rowOf).join("")}</div>
           </div>`).join("")}
+          ${st.length ? `<div class="plot">
+            <div class="plot-head"><span class="eyebrow">Сторис серии</span><span class="count">${st.length}</span></div>
+            <div class="st-list">${st.map(storyLine).join("")}</div>
+          </div>` : ""}
+          ${hl.length ? `<div class="hl-block">
+            <div class="plot-head"><span class="eyebrow">Актуальное</span>
+              <button class="ib q" popovertarget="help-highlights" aria-label="Что такое актуальное">${I.help}</button></div>
+            <div class="hl-row scroller">${fades}${hl.map(hlDisc).join("")}</div>
+          </div>` : ""}
         </div>
       </section>`;
     }).join("");
+
+    const orphanHl = HIGHLIGHTS.filter(h => !h.seriesId);
+    const loose = STORIES.filter(s => !s.attachKind);
 
     return `<div class="stage-bar">
         <h2 class="section">Серии</h2>
         <button class="ib q" popovertarget="help-series" aria-label="Что такое серия">${I.help}</button>
       </div>
-      <div class="series-list">${blocks || `<p class="count">Всё скрыто фильтрами.</p>`}</div>`;
+      <div class="series-list">${blocks || `<p class="count">Всё скрыто фильтрами.</p>`}
+        ${orphanHl.length || loose.length ? `<section class="sblock" style="--line:${NO_SERIES.color}">
+          <div class="sbar"></div>
+          <div class="sinner">
+            <h3 class="stitle">Без серии<span class="kind">сторис и актуальное</span></h3>
+            <div class="ssum">То, что не принадлежит ни одному замыслу</div>
+            ${loose.length ? `<div class="st-list">${loose.map(storyLine).join("")}</div>` : ""}
+            ${orphanHl.length ? `<div class="hl-block">
+              <div class="plot-head"><span class="eyebrow">Актуальное</span>
+                <button class="ib q" popovertarget="help-highlights" aria-label="Что такое актуальное">${I.help}</button></div>
+              <div class="hl-row scroller">${fades}${orphanHl.map(hlDisc).join("")}</div>
+            </div>` : ""}
+          </div>
+        </section>` : ""}
+      </div>`;
   }
 
   function viewWeeks() {
-    const posts = timeline(visiblePosts());
-    const dated = [...posts.map(dateOf), ...LOOSE_STORIES.map(s => s.date), TODAY].filter(Boolean).sort();
+    const posts = feedChron(visiblePosts()).filter(p => shownDate(p));
+    const storyDays = STORIES.map(s => ({ s, ...storyDay(s) })).filter(x => x.day);
+    const dated = [...posts.map(shownDate), ...storyDays.map(x => x.day), TODAY].sort();
     if (!dated.length) return `<p class="count">Нечего показать.</p>`;
 
     const start = mondayOf(dated[0]), end = mondayOf(dated[dated.length - 1]), nowWeek = mondayOf(TODAY);
@@ -1512,11 +1810,8 @@
 
     for (let w = start; w <= end; w = addDays(w, 7)) {
       const wEnd = addDays(w, 6);
-      const items = posts.filter(p => { const d = dateOf(p); return d >= w && d <= wEnd; });
-      const stories = [
-        ...items.flatMap(p => p.stories.map(s => ({ ...s, on: p.h }))),
-        ...LOOSE_STORIES.filter(s => s.date >= w && s.date <= wEnd).map(s => ({ k: "сама по себе", t: s.t }))
-      ];
+      const items = posts.filter(p => { const d = shownDate(p); return d >= w && d <= wEnd; });
+      const st = storyDays.filter(x => x.day >= w && x.day <= wEnd);
       const m1 = parse(w).getMonth(), m2 = parse(wEnd).getMonth();
       const when = m1 === m2
         ? `${parse(w).getDate()}–${parse(wEnd).getDate()} ${MONTHS[m2]}`
@@ -1526,17 +1821,22 @@
         <div class="week-when">${when}<span>${w === nowWeek ? "эта неделя" : MONTHS_NOM[m1]}</span></div>
         <div class="week-body">
           ${items.length ? `<div class="lane">${items.map(p => {
-            const d = dateOf(p);
+            const d = shownDate(p);
             const inDays = d > TODAY ? daysBetween(TODAY, d) : null;
+            const cl = clashesOf(p).length > 0;
             return `<button class="pill" data-id="${p.id}" data-status="${p.status}">
               <span class="cap-sq" style="background:${colorOf(p.series)}">${FORMATS[p.format].icon}</span>
               <span class="txt">${esc(p.h)}</span>
+              ${cl ? `<span class="clash-dot"></span>` : ""}
               ${inDays !== null ? `<span class="in">через ${inDays} ${plural(inDays, "день", "дня", "дней")}</span>` : ""}
             </button>`;
           }).join("")}</div>` : `<div class="week-empty">Ни одной публикации</div>`}
-          ${stories.length ? `<div class="lane"><span class="lane-label">сторис</span>${stories.map(s =>
-            `<span class="pill story-pill" title="${esc(s.on ? "к посту «" + s.on + "»" : "сама по себе")}">${esc(s.k + ": " + s.t)}</span>`
-          ).join("")}</div>` : ""}
+          <div class="lane"><span class="lane-label">сторис</span>${
+            st.length
+              ? st.map(x => `<span class="pill story-pill" title="${esc(x.derived ? "день выведен из поста по роли" : "свой день")}">${
+                  esc((x.s.role ? ROLES[x.s.role] + ": " : "") + x.s.t)}</span>`).join("")
+              : `<span class="week-empty">Ни одной сторис</span>`
+          }</div>
         </div>
       </section>`);
     }
@@ -1553,6 +1853,9 @@
     renderFilters();
     stage.innerHTML = state.view === "feed" ? viewFeed() : state.view === "series" ? viewSeries() : viewWeeks();
     for (const b of document.querySelectorAll(".ib.q")) if (!b.innerHTML.trim()) b.innerHTML = I.help;
+
+    const n = visiblePosts().length;
+    $("#qnote") && ($("#qnote").textContent = state.q ? `${n} из ${POSTS.length}` : "");
   }
 
   function switchView(v) {
@@ -1602,15 +1905,17 @@
   function openDetail(id) {
     const p = postById(id);
     if (!p) return;
-    const c = colorOf(p.series), path = pathOf(p.series), d = dateOf(p);
+    const c = colorOf(p.series), path = pathOf(p.series);
     const own = state.covers[p.id];
+    const st = storiesOfPost(p.id);
+    const cl = clashesOf(p);
 
     dlg.style.setProperty("--line", c);
     dlg.innerHTML = `<div class="d-scroll">
       <div class="d-stage" id="d-stage">
         ${own
           ? `<img src="${esc(own)}" alt="" id="d-img" />`
-          : `<div class="d-fallback" style="background-image:${p.status === "idea" ? "none" : gradientOf(p)};${p.status === "idea" ? "background:var(--hair)" : ""}"></div>`}
+          : `<div class="d-fallback" style="${p.status === "idea" ? "background:var(--hair)" : `background-image:${gradientOf(p.id, c)}`}"></div>`}
         <div class="d-crop" id="d-crop" hidden></div>
         <span class="d-croplabel" id="d-croplabel" hidden>рамка — что оставит лента</span>
         <button class="d-close" aria-label="Закрыть" data-close>${I.close}</button>
@@ -1621,14 +1926,19 @@
         <p class="d-s">${esc(p.s)}</p>
         <div class="d-facts">
           <span class="d-fact">${FORMATS[p.format].icon}${FORMATS[p.format].label}</span>
-          <span class="d-fact"><span class="k">состояние</span>${STATUSES[p.status]}</span>
-          <span class="d-fact"><span class="k">${p.status === "posted" ? "вышел" : "выход"}</span>${p.status === "idea" ? "не назначен" : fmtDay(d)}</span>
+          <span class="d-fact"><span class="k">состояние</span>${STATUSES[p.status]}${p.archived ? " · в архиве" : ""}</span>
+          ${p.status === "posted"
+            ? `<span class="d-fact"><span class="k">вышел</span>${fmtDay(p.date)}${p.target ? ` <span class="k">(собирался ${fmtDay(p.target)})</span>` : ""}</span>`
+            : p.status === "planned"
+              ? `<span class="d-fact ${cl.length ? "clash" : ""}"><span class="k">ориентир</span>${p.target ? "~" + fmtDay(p.target) : "не задан"}</span>`
+              : ""}
         </div>
+        ${cl.length ? `<p class="note" style="color:var(--warn)">${esc(cl.join("; "))}. Ориентир порядком не управляет — доска показывает расхождение, а не исправляет его.</p>` : ""}
         ${p.tags.length ? `<div class="chips">${p.tags.map(t => `<span class="chip" style="cursor:default">${esc(t)}</span>`).join("")}</div>` : ""}
         <div class="d-sub">
-          <div class="eyebrow">Сторис</div>
-          ${p.stories.length
-            ? `<ul class="d-stories">${p.stories.map(s => `<li><span class="kind2">${esc(s.k)}</span><span>${esc(s.t)}</span></li>`).join("")}</ul>`
+          <div class="eyebrow">Сторис этого поста</div>
+          ${st.length
+            ? `<div class="st-list">${st.map(storyLine).join("")}</div>`
             : `<p class="note">Пока ни одной. Подводка за день до выхода и отсылка в день выхода — то, что обычно просится.</p>`}
         </div>
         <div class="d-actions">
@@ -1709,13 +2019,13 @@
       return render();
     }
 
+    if (e.target.closest("[data-arch]")) { state.showArchived = !state.showArchived; return render(); }
     if (e.target.closest("[data-alltags]")) { state.allTags = !state.allTags; return renderFilters(); }
-
     if (e.target.closest("[data-reset]")) {
       for (const s of Object.values(state.hidden)) s.clear();
+      state.showArchived = false;
       return render();
     }
-
     if (e.target.closest("[data-order]")) { state.order = state.order === "profile" ? "chrono" : "profile"; return render(); }
 
     const dens = e.target.closest("[data-density]");
@@ -1731,8 +2041,10 @@
     if (e.key === "Escape" && qEl.value) { e.stopPropagation(); qEl.value = ""; state.q = ""; render(); }
   });
 
-  /* ---------------- drag to reorder ---------------- */
-  /* 1:1 with the pointer, live reorder with a FLIP settle, interruptible. */
+  /* ---------------- drag: reorders the queue, and only the queue ---------------- */
+  /* 1:1 with the pointer, live reorder with a FLIP settle, interruptible.
+     Ориентиры do not follow the drag — that is the whole of ADR 0003, and it
+     is why a clash can appear the moment you let go. */
 
   const EASE = "cubic-bezier(.2,.9,.25,1)";
   const calm = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -1816,7 +2128,7 @@
       }
       setTimeout(() => { delete el.dataset.suppress; }, 0);
       renderRhythm();
-      refreshDates();
+      refreshClashes();
       save();
     }
     drag = null;
@@ -1831,15 +2143,23 @@
     state.queue = state.order === "profile" ? ids.reverse() : ids;
   }
 
-  function refreshDates() {
-    for (const t of document.querySelectorAll(".tile[data-id]")) {
+  /* A drag changes no date, but it can make an existing ориентир wrong — so
+     the markers are recomputed in place rather than by rebuilding the grid
+     under the settle animation. */
+  function refreshClashes() {
+    for (const t of document.querySelectorAll('.tile[data-id]')) {
       const p = postById(t.dataset.id);
       const m = t.querySelector(".cap .m");
-      if (p && m && p.status !== "idea") m.textContent = fmtDay(dateOf(p));
+      if (!p || !m || p.status !== "planned") continue;
+      const info = metaOf(p);
+      m.classList.toggle("clash", info.clash);
+      m.innerHTML = info.html;
+      m.title = info.title;
     }
   }
 
   addEventListener("resize", () => { if (dlg.open) drawCrop(); });
 
   render();
+
 </script>
