@@ -246,6 +246,32 @@
     font-variant-numeric: tabular-nums;
   }
 
+  /* ---------- search ---------- */
+
+  .searchrow {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    padding-block: 16px 0;
+  }
+
+  .qinput {
+    flex: 1 1 260px;
+    min-inline-size: 0;
+    max-inline-size: 420px;
+    font: inherit;
+    color: var(--ink);
+    background: var(--card);
+    border: 0;
+    border-radius: 11px;
+    padding: 9px 13px;
+    box-shadow: var(--shadow);
+    outline: none;
+  }
+  .qinput::placeholder { color: var(--ink-45); }
+  .qinput:focus-visible { outline: 2px solid var(--ink); outline-offset: 1px; }
+
   /* ---------- filters ---------- */
 
   .filters {
@@ -1003,6 +1029,12 @@
     <div class="strip" id="strip" role="list" aria-label="Публикации по порядку выхода"></div>
   </section>
 
+  <div class="searchrow">
+    <input id="q" class="qinput" type="search" autocomplete="off"
+      placeholder="Найти по заголовку, деталям, линии, метке или сторис" />
+    <span class="hint" id="qnote"></span>
+  </div>
+
   <section class="filters" id="filters" aria-label="Фильтры"></section>
 
   <main id="stage" tabindex="-1"></main>
@@ -1052,6 +1084,15 @@
 
   const TODAY = "2026-10-03";
   const STORE = "feed-board-v1";
+
+  /* Every piece of user text goes through this on its way into markup —
+     headings, subheadings, line names, tags, stories. In an attribute a bare
+     quote escapes the attribute; in text a bare `<` eats the rest of the
+     tile. Harmless while the data sits in this file, and a hole the moment
+     there is a form. The DOM un-escapes on parse, so a data- attribute still
+     reads back its original value. */
+  const esc = s => String(s).replace(/[&<>"']/g, c =>
+    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c])
 
   /* ----- icons ----- */
 
@@ -1241,6 +1282,7 @@
     captions: true,
     queue,
     covers: (saved.covers && typeof saved.covers === "object") ? saved.covers : {},
+    q: "",
     hidden: { format: new Set(), line: new Set(), status: new Set(), tag: new Set() }
   };
 
@@ -1311,7 +1353,20 @@
     if (h.status.has(p.status)) return false;
     if (h.line.has(rootOf(p.line).id)) return false;
     if (h.tag.size && p.tags.some(t => h.tag.has(t))) return false;
+    if (state.q && !haystack(p).includes(state.q)) return false;
     return true;
+  }
+
+  /* The chips take a kind away; the search finds one thing. Two different
+     questions, so the search reaches what no chip does — the subheading and
+     the stories, which is where "where did I promise that poll" lives. */
+  function haystack(p) {
+    return [
+      p.h, p.s,
+      ...pathOf(p.line),
+      ...p.tags,
+      ...p.stories.map(s => s.k + " " + s.t)
+    ].join(" ").toLowerCase();
   }
 
   function visiblePosts() { return POSTS.filter(visible); }
@@ -1354,7 +1409,7 @@
       if (!drewNow && d > TODAY) { html += `<span class="now-tick" role="separator"></span>`; drewNow = true; }
       const c = colorOf(p.line);
       html += `<button class="mark" role="listitem" data-id="${p.id}" data-status="${p.status}"
-        style="background:${c}" title="${fmtDay(d)} · ${FORMATS[p.format].label} · ${p.h}">${FORMATS[p.format].icon}</button>`;
+        style="background:${c}" title="${esc(fmtDay(d) + " · " + FORMATS[p.format].label + " · " + p.h)}">${FORMATS[p.format].icon}</button>`;
       prev = d;
     }
     if (!drewNow) html += `<span class="now-tick" role="separator"></span>`;
@@ -1429,9 +1484,9 @@
         </div>
         <div class="chips">${g.items.map(i => {
           const on = !state.hidden[g.key].has(i.id);
-          return `<button class="chip" aria-pressed="${on}" data-group="${g.key}" data-item="${i.id}">
+          return `<button class="chip" aria-pressed="${on}" data-group="${g.key}" data-item="${esc(i.id)}">
             ${i.color ? `<span class="dot" style="background:${i.color}"></span>` : ""}
-            ${i.name}<span class="sub">${i.n}</span>
+            ${esc(i.name)}<span class="sub">${i.n}</span>
           </button>`;
         }).join("")}</div>
       </div>`;
@@ -1454,8 +1509,8 @@
       ${ticks ? `<span class="story-ticks" title="${p.stories.length} ${plural(p.stories.length, "сторис", "сторис", "сторис")}">${ticks}</span>` : ""}
       <span class="badges">${fmtBadge(p.format, "fmt")}</span>
       <span class="tile-body">
-        <span class="tile-title">${p.h}</span>
-        <span class="tile-meta"><span class="ln">${line.name}</span>· ${p.status === "idea" ? "идея" : fmtDay(d)}</span>
+        <span class="tile-title">${esc(p.h)}</span>
+        <span class="tile-meta"><span class="ln">${esc(line.name)}</span>· ${p.status === "idea" ? "идея" : fmtDay(d)}</span>
       </span>
     </button>`;
   }
@@ -1507,8 +1562,8 @@
     return `<button class="row" data-id="${p.id}" data-status="${p.status}" style="--line:${c}">
       <span class="row-thumb" style="${coverCss(p)}"></span>
       <span class="row-main">
-        <span class="row-h">${p.h}</span>
-        <span class="row-s">${p.s}</span>
+        <span class="row-h">${esc(p.h)}</span>
+        <span class="row-s">${esc(p.s)}</span>
       </span>
       <span class="row-right">
         <span class="fmt-sm" title="${FORMATS[p.format].label}">${FORMATS[p.format].icon}</span>
@@ -1537,11 +1592,11 @@
       return `<section class="line-block" style="--line:${root.color}">
         <div class="bar"></div>
         <div class="inner">
-          <h3 class="line-title">${root.name}</h3>
+          <h3 class="line-title">${esc(root.name)}</h3>
           <div class="line-sum">${total} ${plural(total, "пост", "поста", "постов")} · ${mix}${kids.length ? ` · ${inKids.length} ${plural(inKids.length, "ветка", "ветки", "веток")}` : ""}</div>
           ${direct.length ? `<div class="row-list">${byDate(direct).map(rowOf).join("")}</div>` : ""}
           ${inKids.map(g => `<div class="sub-line">
-            <div class="sub-line-head"><span class="bead"></span><h4>${g.line.name}</h4>
+            <div class="sub-line-head"><span class="bead"></span><h4>${esc(g.line.name)}</h4>
               <span class="count">${g.items.length} ${plural(g.items.length, "пост", "поста", "постов")}</span></div>
             <div class="row-list">${byDate(g.items).map(rowOf).join("")}</div>
           </div>`).join("")}
@@ -1602,10 +1657,10 @@
             const c = colorOf(p.line);
             return `<button class="pill" data-id="${p.id}" data-status="${p.status}">
               <span class="cap" style="background:${c}">${FORMATS[p.format].icon}</span>
-              <span class="txt">${p.h}</span></button>`;
+              <span class="txt">${esc(p.h)}</span></button>`;
           }).join("")}</div>` : `<div class="week-empty">Ни одной публикации</div>`}
           ${stories.length ? `<div class="lane"><span class="lane-label">сторис</span>${stories.map(s =>
-            `<span class="pill story-pill" title="${s.on ? "к посту «" + s.on + "»" : "сама по себе"}">${s.k}: ${s.t}</span>`
+            `<span class="pill story-pill" title="${esc(s.on ? "к посту «" + s.on + "»" : "сама по себе")}">${esc(s.k + ": " + s.t)}</span>`
           ).join("")}</div>` : `<div class="lane"><span class="lane-label">сторис</span><span class="week-empty">—</span></div>`}
         </div>
       </section>`);
@@ -1623,7 +1678,28 @@
     renderFilters();
     const html = state.view === "feed" ? viewFeed() : state.view === "lines" ? viewLines() : viewWeeks();
     stage.innerHTML = html;
+
+    const n = visiblePosts().length;
+    $("#qnote").textContent = state.q
+      ? `${n} ${plural(n, "пост", "поста", "постов")} из ${POSTS.length}`
+      : "";
   }
+
+  /* The search box lives outside everything render() rebuilds, so typing in
+     it never loses focus. */
+  const qEl = $("#q");
+  qEl.addEventListener("input", () => {
+    state.q = qEl.value.trim().toLowerCase();
+    render();
+  });
+  qEl.addEventListener("keydown", e => {
+    if (e.key === "Escape" && qEl.value) {
+      e.stopPropagation();
+      qEl.value = "";
+      state.q = "";
+      render();
+    }
+  });
 
   function switchView(v) {
     state.view = v;
@@ -1653,20 +1729,20 @@
         <button class="d-close" aria-label="Закрыть" data-close>${I.close}</button>
       </div>
       <div class="d-body">
-        <div class="d-path">${path.map((n, i) => i ? `<span class="sep">→</span>${n}` : n).join(" ")}</div>
-        <h2 class="d-h" id="d-h">${p.h}</h2>
-        <p class="d-s">${p.s}</p>
+        <div class="d-path">${path.map((n, i) => i ? `<span class="sep">→</span>${esc(n)}` : esc(n)).join(" ")}</div>
+        <h2 class="d-h" id="d-h">${esc(p.h)}</h2>
+        <p class="d-s">${esc(p.s)}</p>
         <dl class="d-facts">
           <div class="d-fact"><dt>Формат</dt><dd>${FORMATS[p.format].icon}${FORMATS[p.format].label}</dd></div>
           <div class="d-fact"><dt>Состояние</dt><dd>${STATUSES[p.status]}</dd></div>
           <div class="d-fact"><dt>${p.status === "posted" ? "Вышел" : "Выход"}</dt><dd>${p.status === "idea" ? "не назначен" : fmtDay(d)}</dd></div>
         </dl>
         ${p.tags.length ? `<div class="d-sub"><div class="eyebrow">Метки</div>
-          <div class="chips">${p.tags.map(t => `<span class="chip" style="cursor:default">${t}</span>`).join("")}</div></div>` : ""}
+          <div class="chips">${p.tags.map(t => `<span class="chip" style="cursor:default">${esc(t)}</span>`).join("")}</div></div>` : ""}
         <div class="d-sub">
           <div class="eyebrow">Сторис к этому посту</div>
           ${p.stories.length
-            ? `<ul class="d-stories">${p.stories.map(s => `<li><span class="kind">${s.k}</span><span>${s.t}</span></li>`).join("")}</ul>`
+            ? `<ul class="d-stories">${p.stories.map(s => `<li><span class="kind">${esc(s.k)}</span><span>${esc(s.t)}</span></li>`).join("")}</ul>`
             : `<p class="note">Пока ни одной. Подводка за день до выхода и отсылка в день выхода — то, что обычно просится.</p>`}
         </div>
         <div class="d-actions">
@@ -1889,7 +1965,7 @@
       const meta = t.querySelector(".tile-meta");
       if (!p || !meta || p.status === "idea") continue;
       const line = lineById.get(p.line) || NO_LINE;
-      meta.innerHTML = `<span class="ln">${line.name}</span>· ${fmtDay(dateOf(p))}`;
+      meta.innerHTML = `<span class="ln">${esc(line.name)}</span>· ${fmtDay(dateOf(p))}`;
     }
   }
 
