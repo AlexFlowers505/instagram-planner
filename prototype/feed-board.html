@@ -153,6 +153,22 @@
   }
   .seg button:active:not([aria-selected="true"]):not([aria-pressed="true"]) { scale: .97; }
 
+  /* ---------- superseded notice ---------- */
+
+  .stale {
+    margin-block-start: 16px;
+    padding: 13px 15px;
+    border-radius: 13px;
+    background: var(--inset);
+    border-inline-start: 3px solid var(--ink-28);
+    font-size: 12.5px;
+    line-height: 1.5;
+    color: var(--ink-70);
+  }
+  .stale b { color: var(--ink); font-weight: 600; }
+  .stale ul { margin: 7px 0 0; padding-inline-start: 18px; }
+  .stale li { margin-block-start: 3px; }
+
   /* ---------- rhythm strip ---------- */
 
   .rhythm {
@@ -1020,6 +1036,21 @@
 </header>
 
 <div class="wrap">
+
+  <aside class="stale">
+    <b>Прототип от 3 октября 2026. Модель с тех пор уточнена.</b> Виды,
+    перетаскивание и полоса ритма здесь актуальны; по устройству данных прав
+    не этот файл, а <code>docs/wiki/</code> в проекте. Расходится в трёх
+    местах:
+    <ul>
+      <li>«линия» и «ветка» — теперь <b>серия</b> и <b>сюжет</b>, а серия
+        бывает конечной или рубрикой;</li>
+      <li>у запланированных постов здесь есть даты, задающие расписание —
+        теперь дата это <b>необязательный ориентир</b>, который порядком не
+        управляет, а расхождение с очередью просто показывается;</li>
+      <li>нет архива, нет входа и нескольких пользователей.</li>
+    </ul>
+  </aside>
 
   <section class="rhythm">
     <div class="rhythm-head">
