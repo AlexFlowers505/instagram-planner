@@ -1,122 +1,125 @@
-import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import './App.css'
+import { useEffect, useRef, useState } from "react"
+import { useCloudAuth, signOut } from "./data/auth"
+import { loadBoard } from "./data/load"
+import { type QueueStatus, type SaveQueue, createSaveQueue } from "./data/queue"
+import { CLOUD_ENABLED, PROJECT_REF } from "./data/supabase"
+import { type Board, EMPTY_BOARD } from "./types/model"
+import { AuthScreen } from "./views/AuthScreen"
+import { LoadFailed, NoDatabase, SaveFailedBanner, SetPassword } from "./views/Screens"
 
-function App() {
-  const [count, setCount] = useState(0)
+/**
+ * Оболочка: вход, загрузка, очередь записи и то, какой экран сейчас показан.
+ * Доски здесь пока нет — она следующая.
+ */
+
+/**
+ * Прочитанное хранится **вместе с тем, чьё оно**. Так доска одного
+ * пользователя не может показаться другому даже на один кадр, а состояния
+ * «грузится» и «не прочиталось» выводятся сравнением, а не сбрасываются
+ * руками в эффекте.
+ */
+type LoadState =
+  | { kind: "idle" }
+  | { kind: "ok"; userId: string; board: Board }
+  | { kind: "failed"; userId: string; error: string }
+
+export default function App() {
+  const { ready, session, recovery, clearRecovery } = useCloudAuth()
+  const [load, setLoad] = useState<LoadState>({ kind: "idle" })
+  const [saveStatus, setSaveStatus] = useState<QueueStatus>("idle")
+  const [reloadAt, setReloadAt] = useState(0)
+
+  /**
+   * Ключ — **идентификатор пользователя, а не объект сессии**. GoTrue выдаёт
+   * новый объект на каждое событие, и эффект, повешенный на него, в TimeLens
+   * перечитывал все таблицы двенадцать раз за одну загрузку страницы.
+   */
+  const userId = session?.user.id ?? null
+
+  const board = load.kind === "ok" && load.userId === userId ? load.board : EMPTY_BOARD
+  const failure = load.kind === "failed" && load.userId === userId ? load.error : null
+  const loading = Boolean(userId) && !failure && !(load.kind === "ok" && load.userId === userId)
+
+  // Очередь читает доску в момент отправки, поэтому ей нужны свежие ссылки, а
+  // не замыкания из первого рендера.
+  const boardRef = useRef(board)
+  const userRef = useRef(userId)
+  useEffect(() => { boardRef.current = board }, [board])
+  useEffect(() => { userRef.current = userId }, [userId])
+
+  const queueRef = useRef<SaveQueue | null>(null)
+  useEffect(() => {
+    const q = createSaveQueue({
+      getBoard: () => boardRef.current,
+      getUserId: () => userRef.current,
+      onStatus: setSaveStatus,
+    })
+    queueRef.current = q
+    return () => {
+      queueRef.current = null
+      q.dispose()
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!userId) return
+    let alive = true
+    loadBoard(userId)
+      .then(next => { if (alive) setLoad({ kind: "ok", userId, board: next }) })
+      .catch((err: unknown) => {
+        if (alive) {
+          setLoad({ kind: "failed", userId, error: err instanceof Error ? err.message : String(err) })
+        }
+      })
+    return () => { alive = false }
+  }, [userId, reloadAt])
+
+  if (!CLOUD_ENABLED) return <NoDatabase />
+  if (!ready) return null
+  if (recovery) return <SetPassword onDone={clearRecovery} />
+  if (!session) return <AuthScreen />
+  if (failure) {
+    return (
+      <LoadFailed
+        error={failure}
+        onRetry={() => {
+          setLoad({ kind: "idle" })
+          setReloadAt(n => n + 1)
+        }}
+      />
+    )
+  }
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.tsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
+    <div className="mx-auto max-w-[880px] px-4 py-6">
+      <header className="flex flex-wrap items-center gap-3">
+        <h1 className="font-ed text-[17px] font-semibold tracking-[-0.018em]">Лента и серии</h1>
+        <span className="text-[11.5px] text-ink/45">{session.user.email}</span>
         <button
           type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
+          onClick={() => void signOut()}
+          className="ml-auto rounded-lg bg-ink/[0.05] px-3 py-1.5 text-[12px] font-medium hover:bg-ink/10"
         >
-          Count is {count}
+          Выйти
         </button>
-      </section>
+      </header>
 
-      <div className="ticks"></div>
+      <p className="mt-8 text-[13px] text-ink/70">
+        {loading
+          ? "Читаю доску…"
+          : `Прочитано: ${board.posts.length} постов, ${board.series.length} серий, ` +
+            `${board.stories.length} сторис, ${board.highlights.length} актуальных.`}
+      </p>
+      <p className="mt-2 text-[12px] text-ink/45">
+        Доска ещё не собрана — пока это только вход и слой данных. Образец видов
+        и движения лежит в <code className="text-ink/70">prototype/feed-board.html</code>.
+      </p>
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+      {import.meta.env.DEV && PROJECT_REF && (
+        <p className="mt-6 text-[11px] text-ink/28">проект {PROJECT_REF}</p>
+      )}
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
+      {saveStatus === "failed" && <SaveFailedBanner />}
+    </div>
   )
 }
-
-export default App
