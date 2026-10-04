@@ -1,20 +1,25 @@
 import { useEffect, useRef, useState } from "react"
+import { Trash2 } from "lucide-react"
 import type { Board, Format, Post, Series, SeriesKind, Status } from "../types/model"
 import { seriesLookup } from "../lib/series"
 import { placeholderCover } from "../lib/cover"
 import { queue } from "../lib/feed"
-import { rankBetween } from "../lib/rank"
-import { todayKey } from "../lib/date"
+import { postShape } from "../lib/post"
 import { FORMAT_ICON, FORMAT_LABEL } from "../ui/formats"
 import { SERIES_PALETTE, nextColor } from "../ui/palette"
 
 /**
- * Заведение поста.
+ * Заведение и правка поста — **одна форма**. Поля те же, и разделять их значило
+ * бы держать два места, где заголовок называется заголовком.
  *
  * Устройство из `spec 001`, пункты 3–5: состояние и формат парой, превью рядом
  * с полями, серия заводится прямо отсюда. Последнее — эргономика из версии
  * ChatGPT; модель при этом остаётся нашей, то есть серия настоящая, с цветом и
  * видом, а не свободная строка.
+ *
+ * Отдельной карточки поста пока нет нарочно: показывать в ней, кроме этих же
+ * полей, нечего — полный кадр появится вместе с обложками, и тогда у карточки
+ * будет содержание.
  */
 
 const STATUSES: Array<{ id: Status; label: string }> = [
@@ -34,27 +39,36 @@ const CHOICE = (on: boolean) =>
     on ? "bg-ink text-on-fill" : "bg-ink/[0.05] text-ink/70 hover:text-ink"
   }`
 
-export type Created = { post: Post; series?: Series }
+export type Submitted = { post: Post; series?: Series }
 
 export function PostForm({
   board,
+  post,
+  onSubmit,
+  onDelete,
   onCancel,
-  onCreate,
 }: {
   board: Board
+  /** Пост, который правим. Отсутствует — значит заводим новый. */
+  post?: Post
+  onSubmit: (made: Submitted) => void
+  /** Отсутствует там, где удалять нельзя: кнопки тогда нет, а не отключена. */
+  onDelete?: (id: string) => void
   onCancel: () => void
-  onCreate: (made: Created) => void
 }) {
   const dialog = useRef<HTMLDialogElement>(null)
   const lookup = seriesLookup(board)
 
-  const [heading, setHeading] = useState("")
-  const [subheading, setSubheading] = useState("")
-  const [format, setFormat] = useState<Format>("carousel")
-  const [status, setStatus] = useState<Status>("planned")
-  const [seriesId, setSeriesId] = useState<string>("")
-  const [day, setDay] = useState("")
-  const [tags, setTags] = useState("")
+  const [heading, setHeading] = useState(post?.heading ?? "")
+  const [subheading, setSubheading] = useState(post?.subheading ?? "")
+  const [format, setFormat] = useState<Format>(post?.format ?? "carousel")
+  const [status, setStatus] = useState<Status>(post?.status ?? "planned")
+  const [seriesId, setSeriesId] = useState<string>(post?.seriesId ?? "")
+  // Поле дня одно, а смысл у него разный: у вышедшего это день выхода, у
+  // запланированного — ориентир. Показывается тот, который у поста есть.
+  const [day, setDay] = useState(post?.publishedOn ?? post?.targetOn ?? "")
+  const [tags, setTags] = useState((post?.tags ?? []).join(", "))
+  const [removing, setRemoving] = useState(false)
 
   // Новая серия заводится здесь же, чтобы не уходить в настройки ради одного имени.
   const [makingSeries, setMakingSeries] = useState(false)
@@ -84,26 +98,23 @@ export function PostForm({
       targetSeries = series.id
     }
 
-    // Запланированный встаёт в конец очереди: трогается одна строка — его
+    // Новый запланированный встаёт в конец очереди: трогается одна строка — его
     // собственная, и ни один сосед не переписывается.
     const last = queue(board.posts).at(-1)?.rank ?? null
-    const rank = status === "planned" ? rankBetween(last, null) : null
 
-    onCreate({
+    onSubmit({
       series,
       post: {
-        id: crypto.randomUUID(),
+        id: post?.id ?? crypto.randomUUID(),
         seriesId: targetSeries,
         format,
         status,
-        archived: false,
-        publishedOn: status === "posted" ? day || todayKey() : null,
-        targetOn: status === "planned" ? day || null : null,
-        rank,
+        archived: post?.archived ?? false,
+        ...postShape(status, day, post ?? null, last),
         heading: heading.trim(),
         subheading: subheading.trim(),
         tags: tags.split(",").map(t => t.trim()).filter(Boolean),
-        coverPath: null,
+        coverPath: post?.coverPath ?? null,
       },
     })
   }
@@ -310,7 +321,7 @@ export function PostForm({
               disabled={!ready}
               className="rounded-[10px] bg-ink px-4 py-2 text-[13px] font-semibold text-on-fill disabled:opacity-40"
             >
-              Добавить
+              {post ? "Сохранить" : "Добавить"}
             </button>
             <button
               type="button"
@@ -319,6 +330,42 @@ export function PostForm({
             >
               Отмена
             </button>
+
+            {/* Спрашивает здесь же, а не системным окном: отменить удаление
+                нечем — журнала изменений ещё нет. */}
+            {post && onDelete && (
+              <span className="ml-auto flex items-center gap-2">
+                {removing ? (
+                  <>
+                    <span className="text-[11.5px] text-ink/70">Удалить насовсем?</span>
+                    <button
+                      type="button"
+                      onClick={() => onDelete(post.id)}
+                      className="rounded-[10px] bg-warn px-3 py-2 text-[12px] font-semibold text-on-fill"
+                    >
+                      Да
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setRemoving(false)}
+                      className="text-[12px] text-ink/45 underline underline-offset-2 hover:text-ink"
+                    >
+                      Нет
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setRemoving(true)}
+                    title="Удалить пост"
+                    aria-label="Удалить пост"
+                    className="grid h-8 w-8 place-items-center rounded-lg text-ink/45 hover:bg-ink/[0.05] hover:text-warn"
+                  >
+                    <Trash2 size={15} strokeWidth={1.9} />
+                  </button>
+                )}
+              </span>
+            )}
           </div>
         </div>
       </form>

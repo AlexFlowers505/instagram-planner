@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react"
 import { useCloudAuth, signOut } from "./data/auth"
 import { loadBoard } from "./data/load"
-import { type WriteOp, opUpsert } from "./data/ops"
+import { type WriteOp, opDelete, opUpsert } from "./data/ops"
 import { type QueueStatus, type SaveQueue, createSaveQueue } from "./data/queue"
 import { CLOUD_ENABLED, PROJECT_REF } from "./data/supabase"
 import { DEMO_BOARD, DEMO_TODAY } from "./data/demoBoard"
@@ -9,7 +9,7 @@ import { todayKey } from "./lib/date"
 import { type Board, EMPTY_BOARD } from "./types/model"
 import { AuthScreen } from "./views/AuthScreen"
 import { Feed } from "./views/Feed"
-import { type Created, PostForm } from "./views/PostForm"
+import { type Submitted, PostForm } from "./views/PostForm"
 import { LoadFailed, NoDatabase, SaveFailedBanner, SetPassword } from "./views/Screens"
 import { SelfCheckPanel } from "./views/SelfCheckPanel"
 
@@ -24,6 +24,12 @@ import { SelfCheckPanel } from "./views/SelfCheckPanel"
  * «грузится» и «не прочиталось» выводятся сравнением, а не сбрасываются
  * руками в эффекте.
  */
+/**
+ * Что открыто в форме. Одно состояние вместо пары «добавляем» и «правим»:
+ * открыты они не бывают одновременно, а два флага это допускали бы.
+ */
+type Editor = { kind: "new" } | { kind: "post"; id: string }
+
 type LoadState =
   | { kind: "idle" }
   | { kind: "ok"; userId: string; board: Board }
@@ -43,25 +49,41 @@ const DEMO = import.meta.env.DEV && new URLSearchParams(location.search).has("de
  */
 function DemoApp() {
   const [board, setBoard] = useState<Board>(DEMO_BOARD)
-  const [adding, setAdding] = useState(false)
+  const [editor, setEditor] = useState<Editor | null>(null)
+
+  const editing =
+    editor?.kind === "post" ? board.posts.find(p => p.id === editor.id) : undefined
 
   return (
     <div className="mx-auto max-w-[880px] px-4 py-6">
       <p className="mb-4 text-[11.5px] text-ink/45">
         Образец данных — настоящая доска не читается и не пишется
       </p>
-      <Feed board={board} today={DEMO_TODAY} onOpen={() => {}} onAdd={() => setAdding(true)} />
-      {adding && (
+      <Feed
+        board={board}
+        today={DEMO_TODAY}
+        onOpen={id => setEditor({ kind: "post", id })}
+        onAdd={() => setEditor({ kind: "new" })}
+      />
+      {editor && (
         <PostForm
+          key={editor.kind === "post" ? editor.id : "new"}
           board={board}
-          onCancel={() => setAdding(false)}
-          onCreate={({ post, series }) => {
+          post={editing}
+          onCancel={() => setEditor(null)}
+          onSubmit={({ post, series }) => {
             setBoard(b => ({
               ...b,
               series: series ? [...b.series, series] : b.series,
-              posts: [...b.posts, post],
+              posts: b.posts.some(x => x.id === post.id)
+                ? b.posts.map(x => (x.id === post.id ? post : x))
+                : [...b.posts, post],
             }))
-            setAdding(false)
+            setEditor(null)
+          }}
+          onDelete={id => {
+            setBoard(b => withoutPost(b, id))
+            setEditor(null)
           }}
         />
       )}
@@ -69,12 +91,33 @@ function DemoApp() {
   )
 }
 
+/**
+ * Доска без поста — и без того, что на нём держалось: его сторис, а их — из
+ * актуального. На сервере это делают `on delete cascade` и триггер
+ * `highlights_forget_story()`, поэтому в очередь уходит одна операция. Здесь
+ * то же самое повторяется в памяти: иначе до перезагрузки доска показывала бы
+ * сторис удалённого поста и актуальное со ссылками в пустоту.
+ */
+function withoutPost(board: Board, id: string): Board {
+  const orphans = new Set(board.stories.filter(s => s.attachPostId === id).map(s => s.id))
+  return {
+    ...board,
+    posts: board.posts.filter(p => p.id !== id),
+    stories: board.stories.filter(s => !orphans.has(s.id)),
+    highlights: board.highlights.map(h =>
+      h.storyIds.some(sid => orphans.has(sid))
+        ? { ...h, storyIds: h.storyIds.filter(sid => !orphans.has(sid)) }
+        : h,
+    ),
+  }
+}
+
 export default function App() {
   const { ready, session, recovery, clearRecovery } = useCloudAuth()
   const [load, setLoad] = useState<LoadState>({ kind: "idle" })
   const [saveStatus, setSaveStatus] = useState<QueueStatus>("idle")
   const [reloadAt, setReloadAt] = useState(0)
-  const [adding, setAdding] = useState(false)
+  const [editor, setEditor] = useState<Editor | null>(null)
 
   /**
    * Ключ — **идентификатор пользователя, а не объект сессии**. GoTrue выдаёт
@@ -129,22 +172,33 @@ export default function App() {
     queueRef.current?.push(...ops)
   }
 
-  function addPost({ post, series }: Created) {
+  /** Заведение и правка — один путь: отличает их только то, есть ли уже строка. */
+  function savePost({ post, series }: Submitted) {
     // Серия уходит первой: пост на неё ссылается внешним ключом, а очередь
     // применяет операции в том порядке, в каком они пришли.
     const ops = series
       ? [opUpsert("series", series.id), opUpsert("post", post.id)]
       : [opUpsert("post", post.id)]
 
+    const known = board.posts.some(p => p.id === post.id)
+
     persist(
       {
         ...board,
         series: series ? [...board.series, series] : board.series,
-        posts: [...board.posts, post],
+        posts: known
+          ? board.posts.map(p => (p.id === post.id ? post : p))
+          : [...board.posts, post],
       },
       ...ops,
     )
-    setAdding(false)
+    setEditor(null)
+  }
+
+  /** Одна операция удаления: остальное на сервере делают каскад и триггер. */
+  function deletePost(id: string) {
+    persist(withoutPost(board, id), opDelete("post", id))
+    setEditor(null)
   }
 
   if (DEMO) return <DemoApp />
@@ -182,11 +236,23 @@ export default function App() {
       {loading ? (
         <p className="mt-8 text-[13px] text-ink/70">Читаю доску…</p>
       ) : (
-        <Feed board={board} today={todayKey()} onOpen={() => {}} onAdd={() => setAdding(true)} />
+        <Feed
+          board={board}
+          today={todayKey()}
+          onOpen={id => setEditor({ kind: "post", id })}
+          onAdd={() => setEditor({ kind: "new" })}
+        />
       )}
 
-      {adding && (
-        <PostForm board={board} onCancel={() => setAdding(false)} onCreate={addPost} />
+      {editor && (
+        <PostForm
+          key={editor.kind === "post" ? editor.id : "new"}
+          board={board}
+          post={editor.kind === "post" ? board.posts.find(p => p.id === editor.id) : undefined}
+          onSubmit={savePost}
+          onDelete={deletePost}
+          onCancel={() => setEditor(null)}
+        />
       )}
 
       {import.meta.env.DEV && PROJECT_REF && (
