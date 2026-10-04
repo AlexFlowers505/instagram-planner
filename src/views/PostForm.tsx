@@ -45,6 +45,8 @@ export function PostForm({
   board,
   post,
   onSubmit,
+  onUpload,
+  coverUrl,
   onDelete,
   onCancel,
 }: {
@@ -52,6 +54,10 @@ export function PostForm({
   /** Пост, который правим. Отсутствует — значит заводим новый. */
   post?: Post
   onSubmit: (made: Submitted) => void
+  /** Кладёт файл в хранилище и возвращает путь. Нет — обложку менять нельзя. */
+  onUpload?: (file: File) => Promise<string>
+  /** Подписанная ссылка на нынешнюю обложку поста. */
+  coverUrl?: string
   /** Отсутствует там, где удалять нельзя: кнопки тогда нет, а не отключена. */
   onDelete?: (id: string) => void
   onCancel: () => void
@@ -70,6 +76,13 @@ export function PostForm({
   const [tags, setTags] = useState((post?.tags ?? []).join(", "))
   const [removing, setRemoving] = useState(false)
 
+  // Файл уезжает в хранилище сразу при выборе: к отправке формы путь уже
+  // есть, и запись поста остаётся одной строкой без ожидания загрузки.
+  const [coverPath, setCoverPath] = useState(post?.coverPath ?? null)
+  const [picked, setPicked] = useState<string | null>(null)
+  const [sending, setSending] = useState(false)
+  const [failed, setFailed] = useState<string | null>(null)
+
   // Новая серия заводится здесь же, чтобы не уходить в настройки ради одного имени.
   const [makingSeries, setMakingSeries] = useState(false)
   const [newName, setNewName] = useState("")
@@ -78,7 +91,24 @@ export function PostForm({
 
   useEffect(() => { dialog.current?.showModal() }, [])
 
-  const ready = heading.trim().length > 0 && (!makingSeries || newName.trim().length > 0)
+  const ready =
+    heading.trim().length > 0 && (!makingSeries || newName.trim().length > 0) && !sending
+
+  async function pick(file: File | undefined) {
+    if (!file || !onUpload) return
+    setFailed(null)
+    setSending(true)
+    // Своя ссылка на файл показывает кадр сразу, не дожидаясь подписи.
+    setPicked(URL.createObjectURL(file))
+    try {
+      setCoverPath(await onUpload(file))
+    } catch (err: unknown) {
+      setPicked(null)
+      setFailed(err instanceof Error ? err.message : String(err))
+    } finally {
+      setSending(false)
+    }
+  }
 
   function submit(e: React.FormEvent) {
     e.preventDefault()
@@ -114,12 +144,14 @@ export function PostForm({
         heading: heading.trim(),
         subheading: subheading.trim(),
         tags: tags.split(",").map(t => t.trim()).filter(Boolean),
-        coverPath: post?.coverPath ?? null,
+        coverPath,
       },
     })
   }
 
   const previewColor = makingSeries ? newColor : lookup.colorOf(seriesId || null)
+  // Только что выбранный файл главнее подписанной ссылки: она ещё старая.
+  const shown = picked ?? (coverPath && coverPath === post?.coverPath ? coverUrl : null)
 
   return (
     <dialog
@@ -135,11 +167,36 @@ export function PostForm({
         <div className="grid content-start gap-2">
           <div
             className="aspect-[4/5] w-full rounded-lg bg-cover bg-center"
-            style={{ backgroundImage: placeholderCover(heading || "новый", previewColor) }}
+            style={{
+              backgroundImage: shown
+                ? `url("${shown}")`
+                : placeholderCover(heading || "новый", previewColor),
+            }}
           />
-          <p className="text-[10.5px] leading-snug text-ink/45">
-            Обложка ставится позже — это цвет серии
-          </p>
+          {onUpload ? (
+            <>
+              <label className="cursor-pointer rounded-lg bg-ink/[0.05] px-2 py-1.5 text-center text-[11.5px] font-medium hover:bg-ink/10">
+                {sending ? "Загружаю…" : shown ? "Заменить" : "Выбрать обложку"}
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={e => void pick(e.target.files?.[0])}
+                />
+              </label>
+              {failed ? (
+                <p className="text-[10.5px] leading-snug text-warn">{failed}</p>
+              ) : (
+                <p className="text-[10.5px] leading-snug text-ink/45">
+                  Кадр обрежется до 4:5 по центру — как в профиле
+                </p>
+              )}
+            </>
+          ) : (
+            <p className="text-[10.5px] leading-snug text-ink/45">
+              Обложка ставится позже — это цвет серии
+            </p>
+          )}
         </div>
 
         <div className="grid content-start gap-3.5">

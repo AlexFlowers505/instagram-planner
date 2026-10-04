@@ -22,6 +22,8 @@ type Props = {
   clashes: Clash[]
   density: Density
   onOpen: (id: string) => void
+  /** Подписанная ссылка на обложку. Нет — рисуется заглушка цветом серии. */
+  cover?: string
   /** Плитку можно нести — то есть она в очереди. */
   movable?: boolean
   elementRef?: (el: HTMLButtonElement | null) => void
@@ -35,6 +37,7 @@ export function Tile({
   clashes,
   density,
   onOpen,
+  cover,
   movable,
   elementRef,
   onPointerDown,
@@ -74,13 +77,17 @@ export function Tile({
           post.archived ? "opacity-[0.45]" : ""
         }`}
         style={{
-          backgroundImage: isIdea ? undefined : placeholderCover(post.id, color),
+          backgroundImage: cover
+            ? `url("${cover}")`
+            : isIdea
+              ? undefined
+              : placeholderCover(post.id, color),
           backgroundColor: isIdea ? "color-mix(in oklab, var(--color-ink) 4%, transparent)" : undefined,
           outline: !flush && post.status !== "posted" ? `1.5px dashed ${color}` : undefined,
           outlineOffset: "-1.5px",
         }}
       >
-        {isIdea && (
+        {isIdea && !cover && (
           <span className="grid h-full w-full place-items-center opacity-50" style={{ color }}>
             <Lightbulb size={26} strokeWidth={1.7} />
           </span>

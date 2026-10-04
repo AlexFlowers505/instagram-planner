@@ -34,9 +34,12 @@ type Props = {
   onAdd?: () => void
   /** `to` — место в очереди по рангу, не на экране. */
   onMove?: (id: string, to: number) => void
+  /** Путь обложки → подписанная ссылка. */
+  covers?: Map<string, string>
 }
 
-export function Feed({ board, today, onOpen, onAdd, onMove }: Props) {
+export function Feed({ board, today, onOpen, onAdd, onMove, covers }: Props) {
+  const coverOf = (p: Post) => (p.coverPath ? covers?.get(p.coverPath) : undefined)
   const [density, setDensity] = useState<Density>("captions")
   const [profileOrder, setProfileOrder] = useState(true)
 
@@ -149,6 +152,7 @@ export function Feed({ board, today, onOpen, onAdd, onMove }: Props) {
                 stories={storiesOf(post.id)}
                 clashes={clashesOf(post, inQueue, today)}
                 density={density}
+                cover={coverOf(post)}
                 onOpen={id => {
                   // Отпускание после переноса — это не клик по посту.
                   if (!drag.justDragged()) onOpen(id)
@@ -182,6 +186,7 @@ export function Feed({ board, today, onOpen, onAdd, onMove }: Props) {
                 stories={storiesOf(post.id)}
                 clashes={[]}
                 density={density}
+                cover={coverOf(post)}
                 onOpen={onOpen}
               />
             ))}

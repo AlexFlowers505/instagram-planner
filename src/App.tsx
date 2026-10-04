@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react"
 import { useCloudAuth, signOut } from "./data/auth"
 import { loadBoard } from "./data/load"
+import { signCovers, uploadCover } from "./data/covers"
 import { type WriteOp, opDelete, opUpsert } from "./data/ops"
 import { type QueueStatus, type SaveQueue, createSaveQueue } from "./data/queue"
 import { CLOUD_ENABLED, PROJECT_REF } from "./data/supabase"
@@ -164,6 +165,7 @@ export default function App() {
   const [saveStatus, setSaveStatus] = useState<QueueStatus>("idle")
   const [reloadAt, setReloadAt] = useState(0)
   const [editor, setEditor] = useState<Editor | null>(null)
+  const [covers, setCovers] = useState<Map<string, string>>(new Map())
 
   /**
    * Ключ — **идентификатор пользователя, а не объект сессии**. GoTrue выдаёт
@@ -209,6 +211,27 @@ export default function App() {
       })
     return () => { alive = false }
   }, [userId, reloadAt])
+
+  /**
+   * Ссылки на обложки. Ведро закрытое, поэтому путь сам по себе ничего не
+   * показывает — нужна подпись, и берётся она пачкой на всё непо́дписанное.
+   * Неудача здесь **не ломает доску**: плитка просто остаётся с заглушкой.
+   */
+  const asked = useRef(new Set<string>())
+  useEffect(() => {
+    const want = board.posts
+      .map(p => p.coverPath)
+      .filter((x): x is string => Boolean(x) && !asked.current.has(x!))
+    if (want.length === 0) return
+    for (const path of want) asked.current.add(path)
+    signCovers(want)
+      .then(found => {
+        if (found.size > 0) setCovers(prev => new Map([...prev, ...found]))
+      })
+      .catch(() => {
+        // Обложка — украшение: её отсутствие не повод показывать тупик.
+      })
+  }, [board.posts])
 
   /** Единственный путь к записи: новое состояние плюс то, какие строки тронуты. */
   function persist(next: Board, ...ops: WriteOp[]) {
@@ -295,6 +318,7 @@ export default function App() {
           onOpen={id => setEditor({ kind: "post", id })}
           onAdd={() => setEditor({ kind: "new" })}
           onMove={movePost}
+          covers={covers}
         />
       )}
 
@@ -304,6 +328,12 @@ export default function App() {
           board={board}
           post={editor.kind === "post" ? board.posts.find(p => p.id === editor.id) : undefined}
           onSubmit={savePost}
+          onUpload={userId ? file => uploadCover(userId, file) : undefined}
+          coverUrl={
+            editor.kind === "post"
+              ? covers.get(board.posts.find(p => p.id === editor.id)?.coverPath ?? "")
+              : undefined
+          }
           onDelete={deletePost}
           onCancel={() => setEditor(null)}
         />
