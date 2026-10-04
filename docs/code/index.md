@@ -14,6 +14,8 @@
 - [ADR 0003: Ориентир не управляет порядком](adr/0003-target-date-does-not-drive-order.md)
 - [ADR 0004: Сторис — это выпуск, и у неё две оси](adr/0004-a-story-is-an-issue-with-two-axes.md)
 - [ADR 0005: Актуальное — не серия](adr/0005-highlights-are-not-series.md)
+- [ADR 0006: Регистрация открыта, с подтверждением почты](adr/0006-open-registration-with-email-confirmation.md)
+  — отменяет часть 0001
 
 **Ни одна область ещё не описана страницей.** Схема данных лежит в
 `migrations/001_schema.sql` и `002_covers.sql` — они и есть контракт, с

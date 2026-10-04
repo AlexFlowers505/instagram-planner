@@ -3,8 +3,8 @@ import { useCallback, useEffect, useState } from "react"
 import { CLOUD_ENABLED, DataError, supabase } from "./supabase"
 
 /**
- * Вход. Самостоятельная регистрация закрыта в настройках проекта, аккаунты
- * заводятся руками в консоли — это «задел, а не продукт» из ADR 0001.
+ * Вход и регистрация. Регистрация открыта, подтверждение почты включено,
+ * письма идут через свой SMTP — [ADR 0006], который отменил эту часть 0001.
  */
 
 export type CloudAuth = {
@@ -66,6 +66,35 @@ export async function signIn(email: string, password: string): Promise<void> {
   if (error) throw new DataError("signIn", error.message, error)
 }
 
+/**
+ * Регистрация. При включённом подтверждении сессии сразу не будет: Supabase
+ * заводит пользователя и ждёт, пока он перейдёт по ссылке из письма.
+ *
+ * **Про занятый адрес здесь молчат намеренно.** Supabase отвечает одинаково,
+ * занят он или нет, — иначе форма регистрации становится способом проверять,
+ * есть ли у человека тут аккаунт. Поэтому и экран дальше один и тот же.
+ */
+export async function signUp(email: string, password: string): Promise<void> {
+  if (!supabase) throw new DataError("signUp", "База не настроена")
+  const { error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: { emailRedirectTo: location.origin },
+  })
+  if (error) throw new DataError("signUp", error.message, error)
+}
+
+/** Отправить письмо подтверждения заново. */
+export async function resendConfirmation(email: string): Promise<void> {
+  if (!supabase) throw new DataError("resendConfirmation", "База не настроена")
+  const { error } = await supabase.auth.resend({
+    type: "signup",
+    email,
+    options: { emailRedirectTo: location.origin },
+  })
+  if (error) throw new DataError("resendConfirmation", error.message, error)
+}
+
 export async function signOut(): Promise<void> {
   if (!supabase) return
   const { error } = await supabase.auth.signOut()
@@ -73,9 +102,8 @@ export async function signOut(): Promise<void> {
 }
 
 /**
- * Сброс пароля шлёт письмо, а встроенная почта Supabase отдаёт **два письма в
- * час**. Для задела этого хватает: сбрасывают пароль редко. Если понадобится
- * чаще — подключать свой SMTP, см. ADR 0001.
+ * Сброс пароля. Как и подтверждение, идёт через свой SMTP: лимит после его
+ * подключения — 30 писем в час, см. ADR 0006.
  */
 export async function requestPasswordReset(email: string): Promise<void> {
   if (!supabase) throw new DataError("requestPasswordReset", "База не настроена")
