@@ -1,4 +1,4 @@
-import { Lightbulb } from "lucide-react"
+import { Lightbulb, Pencil } from "lucide-react"
 import type { Post, Story } from "../types/model"
 import type { SeriesLookup } from "../lib/series"
 import { placeholderCover } from "../lib/cover"
@@ -22,9 +22,23 @@ type Props = {
   clashes: Clash[]
   density: Density
   onOpen: (id: string) => void
+  /** Плитку можно нести — то есть она в очереди. */
+  movable?: boolean
+  elementRef?: (el: HTMLButtonElement | null) => void
+  onPointerDown?: (e: React.PointerEvent) => void
 }
 
-export function Tile({ post, series, stories, clashes, density, onOpen }: Props) {
+export function Tile({
+  post,
+  series,
+  stories,
+  clashes,
+  density,
+  onOpen,
+  movable,
+  elementRef,
+  onPointerDown,
+}: Props) {
   const color = series.colorOf(post.seriesId)
   const Icon = FORMAT_ICON[post.format]
   const day = shownDate(post)
@@ -38,11 +52,20 @@ export function Tile({ post, series, stories, clashes, density, onOpen }: Props)
   return (
     <button
       type="button"
+      ref={elementRef}
       onClick={() => onOpen(post.id)}
-      title={title}
+      onPointerDown={onPointerDown}
+      title={movable ? `${title} — открыть, перетащить` : `${title} — открыть`}
+      aria-label={`${post.heading} — открыть`}
       data-status={post.status}
-      className="group grid cursor-pointer gap-[7px] text-left transition-[translate] duration-200 hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-[3px] focus-visible:outline-ink"
-      style={{ gridTemplateRows: density === "captions" ? "auto auto" : "auto" }}
+      className="group grid gap-[7px] text-left transition-[translate] duration-200 hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-[3px] focus-visible:outline-ink"
+      style={{
+        gridTemplateRows: density === "captions" ? "auto auto" : "auto",
+        // Браузер не должен прокручивать страницу жестом, который мы уже
+        // взяли себе; у неподвижных плиток прокрутка остаётся обычной.
+        touchAction: movable ? "none" : undefined,
+        cursor: movable ? "grab" : "pointer",
+      }}
     >
       <span
         className={`relative block aspect-[4/5] max-w-full overflow-hidden bg-cover bg-center ${
@@ -85,6 +108,17 @@ export function Tile({ post, series, stories, clashes, density, onOpen }: Props)
             архив
           </span>
         )}
+
+        {/* Плитка открывает пост на правку, и до этого об этом не говорило
+            ничто — а узнать такое можно было только случайным кликом. Значок
+            по наведению и фокусу: в покое его нет, поэтому сетка остаётся
+            тихой, в том числе и в режиме «как в ленте». */}
+        <span
+          className="absolute bottom-[5px] right-[5px] z-[2] grid h-[19px] w-[19px] place-items-center rounded-md bg-[#0B0E12A0] text-white opacity-0 backdrop-blur-sm transition-opacity duration-150 group-hover:opacity-100 group-focus-visible:opacity-100"
+          aria-hidden
+        >
+          <Pencil size={10} strokeWidth={2} />
+        </span>
 
         {/* Значок формата остаётся даже вплотную: он есть и в настоящем профиле. */}
         <span

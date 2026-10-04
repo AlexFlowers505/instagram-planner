@@ -1,10 +1,11 @@
 import { useState } from "react"
 import { ArrowUpDown, Grid2x2, LayoutGrid, Plus, Type } from "lucide-react"
-import type { Board } from "../types/model"
+import type { Board, Post } from "../types/model"
 import { seriesLookup } from "../lib/series"
-import { boardPosts, clashesOf, feedOrder, ideas, queue, rhythm } from "../lib/feed"
+import { boardPosts, clashesOf, ideas, posted, queue, rhythm } from "../lib/feed"
 import { plural } from "../lib/date"
 import type { Density } from "../ui/formats"
+import { useQueueDrag } from "../ui/useQueueDrag"
 import { Tile } from "./Tile"
 
 /**
@@ -31,23 +32,43 @@ type Props = {
   /** Отсутствует там, где писать нельзя — например в образце данных.
       Кнопка тогда не отключена, а её нет: так не нужно объяснять отказ. */
   onAdd?: () => void
+  /** `to` — место в очереди по рангу, не на экране. */
+  onMove?: (id: string, to: number) => void
 }
 
-export function Feed({ board, today, onOpen, onAdd }: Props) {
+export function Feed({ board, today, onOpen, onAdd, onMove }: Props) {
   const [density, setDensity] = useState<Density>("captions")
   const [profileOrder, setProfileOrder] = useState(true)
 
   const series = seriesLookup(board)
   const posts = boardPosts(board)
-  const line = feedOrder(posts)
+  const out = posted(posts)
   const inQueue = queue(posts)
   const shelf = ideas(posts)
   const beat = rhythm(posts)
 
   const storiesOf = (postId: string) => board.stories.filter(s => s.attachPostId === postId)
 
-  // «Как в профиле» — обратный порядок: новое слева сверху.
-  const sequence = profileOrder ? [...line].reverse() : line
+  // «Как в профиле» — обратный порядок: новое слева сверху. Очередь при этом
+  // идёт первой, потому что её хвост и есть самое новое.
+  const shownQueue = profileOrder ? [...inQueue].reverse() : inQueue
+
+  const drag = useQueueDrag(
+    shownQueue.map(p => p.id),
+    (id, at) => {
+      // На экране порядок может быть перевёрнут, а ранг — нет.
+      onMove?.(id, profileOrder ? shownQueue.length - 1 - at : at)
+    },
+  )
+
+  const byId = new Map(posts.map(p => [p.id, p]))
+  const carriedQueue: Post[] = drag.order
+    ? drag.order.map(id => byId.get(id)).filter((p): p is Post => Boolean(p))
+    : shownQueue
+
+  const sequence = profileOrder
+    ? [...carriedQueue, ...[...out].reverse()]
+    : [...out, ...carriedQueue]
   const todayAt = sequence.findIndex(p => (profileOrder ? p.status === "posted" : p.status !== "posted"))
 
   const anyClash = inQueue.some(p => clashesOf(p, inQueue, today).length > 0)
@@ -118,18 +139,27 @@ export function Feed({ board, today, onOpen, onAdd }: Props) {
       )}
 
       <div className={`grid max-w-[720px] grid-cols-3 ${GAP[density]}`}>
-        {sequence.map((post, i) => (
-          <Fragmented key={post.id} divider={i === todayAt}>
-            <Tile
-              post={post}
-              series={series}
-              stories={storiesOf(post.id)}
-              clashes={clashesOf(post, inQueue, today)}
-              density={density}
-              onOpen={onOpen}
-            />
-          </Fragmented>
-        ))}
+        {sequence.map((post, i) => {
+          const movable = Boolean(onMove) && post.status === "planned"
+          return (
+            <Fragmented key={post.id} divider={i === todayAt}>
+              <Tile
+                post={post}
+                series={series}
+                stories={storiesOf(post.id)}
+                clashes={clashesOf(post, inQueue, today)}
+                density={density}
+                onOpen={id => {
+                  // Отпускание после переноса — это не клик по посту.
+                  if (!drag.justDragged()) onOpen(id)
+                }}
+                movable={movable}
+                elementRef={movable ? el => drag.register(post.id, el) : undefined}
+                onPointerDown={movable ? e => drag.onPointerDown(e, post.id) : undefined}
+              />
+            </Fragmented>
+          )
+        })}
         {todayAt === -1 && sequence.length > 0 && <Divider />}
       </div>
 

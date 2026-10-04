@@ -6,6 +6,8 @@ import { type QueueStatus, type SaveQueue, createSaveQueue } from "./data/queue"
 import { CLOUD_ENABLED, PROJECT_REF } from "./data/supabase"
 import { DEMO_BOARD, DEMO_TODAY } from "./data/demoBoard"
 import { todayKey } from "./lib/date"
+import { boardPosts, queue } from "./lib/feed"
+import { freshRanks, rankForMove } from "./lib/rank"
 import { type Board, EMPTY_BOARD } from "./types/model"
 import { AuthScreen } from "./views/AuthScreen"
 import { Feed } from "./views/Feed"
@@ -64,6 +66,7 @@ function DemoApp() {
         today={DEMO_TODAY}
         onOpen={id => setEditor({ kind: "post", id })}
         onAdd={() => setEditor({ kind: "new" })}
+        onMove={(id, to) => setBoard(b => withMove(b, id, to)?.board ?? b)}
       />
       {editor && (
         <PostForm
@@ -89,6 +92,49 @@ function DemoApp() {
       )}
     </div>
   )
+}
+
+/**
+ * Доска после переноса в очереди и **список тронутых строк**.
+ *
+ * Обычно строка одна — та, которую несли: в этом и смысл дробного ранга
+ * (ADR 0002). Если зазор между соседями исчерпан, очередь перенумеровывается
+ * целиком; это единственное место, где запись трогает много строк сразу, и
+ * случается оно примерно раз в тысячу переносов в одно и то же место.
+ */
+function withMove(board: Board, id: string, to: number): { board: Board; touched: string[] } | null {
+  const q = queue(boardPosts(board))
+  const from = q.findIndex(p => p.id === id)
+  if (from < 0 || to < 0 || to >= q.length || from === to) return null
+
+  const rank = rankForMove(
+    q.map(p => p.rank ?? 0),
+    from,
+    to,
+  )
+
+  if (rank !== null) {
+    return {
+      board: { ...board, posts: board.posts.map(p => (p.id === id ? { ...p, rank } : p)) },
+      touched: [id],
+    }
+  }
+
+  const next = [...q]
+  next.splice(from, 1)
+  next.splice(to, 0, q[from])
+  const fresh = freshRanks(next.length)
+  const ranked = new Map(next.map((p, i) => [p.id, fresh[i]]))
+  return {
+    board: {
+      ...board,
+      posts: board.posts.map(p => {
+        const r = ranked.get(p.id)
+        return r === undefined ? p : { ...p, rank: r }
+      }),
+    },
+    touched: next.map(p => p.id),
+  }
 }
 
 /**
@@ -195,6 +241,13 @@ export default function App() {
     setEditor(null)
   }
 
+  /** Перенос в очереди: ранг меняется у того, кого несли, и больше ни у кого. */
+  function movePost(id: string, to: number) {
+    const done = withMove(board, id, to)
+    if (!done) return
+    persist(done.board, ...done.touched.map(x => opUpsert("post", x)))
+  }
+
   /** Одна операция удаления: остальное на сервере делают каскад и триггер. */
   function deletePost(id: string) {
     persist(withoutPost(board, id), opDelete("post", id))
@@ -241,6 +294,7 @@ export default function App() {
           today={todayKey()}
           onOpen={id => setEditor({ kind: "post", id })}
           onAdd={() => setEditor({ kind: "new" })}
+          onMove={movePost}
         />
       )}
 
