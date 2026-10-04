@@ -23,13 +23,24 @@ const KIND: Record<string, string> = {
 /** По дню, какой у поста виден; без дня — в конец, это идеи. */
 const byDay = (a: Post, b: Post) => (shownDate(a) ?? "9999").localeCompare(shownDate(b) ?? "9999")
 
-export function SeriesView({ board, onOpen }: { board: Board; onOpen: (id: string) => void }) {
+export function SeriesView({
+  board,
+  onOpen,
+  onEditStory,
+  onEditHighlight,
+}: {
+  board: Board
+  onOpen: (id: string) => void
+  onEditStory?: (id: string) => void
+  onEditHighlight?: (id: string) => void
+}) {
   const lookup = seriesLookup(board)
   const posts = boardPosts(board)
 
   const inSeries = (id: string | null) => posts.filter(p => p.seriesId === id).sort(byDay)
 
   const roots: Series[] = [...lookup.roots, NO_SERIES]
+  const loose = board.stories.filter(s => !s.attachPostId && !s.attachSeriesId)
 
   return (
     <div className="max-w-[720px] pt-3.5">
@@ -77,24 +88,70 @@ export function SeriesView({ board, onOpen }: { board: Board; onOpen: (id: strin
             })}
 
             {stories.length > 0 && (
-              <p className="mt-2.5 text-[11.5px] text-ink/70">
-                <span className="text-ink/45">сторис серии: </span>
-                {stories.map(s => s.body || "без текста").join(" · ")}
-              </p>
+              <Row label="сторис серии">
+                {stories.map(s => (
+                  <Chip key={s.id} onClick={onEditStory && (() => onEditStory(s.id))}>
+                    {s.body || "без текста"}
+                  </Chip>
+                ))}
+              </Row>
             )}
 
             {highlights.length > 0 && (
-              <p className="mt-1 text-[11.5px] text-ink/70">
-                <span className="text-ink/45">актуальное: </span>
-                {highlights
-                  .map(h => `${h.name}${h.assembled ? "" : " (не собрано)"}`)
-                  .join(" · ")}
-              </p>
+              <Row label="актуальное">
+                {highlights.map(h => (
+                  <Chip
+                    key={h.id}
+                    onClick={onEditHighlight && (() => onEditHighlight(h.id))}
+                  >
+                    {h.name}{h.assembled ? "" : " · задумано"}
+                  </Chip>
+                ))}
+              </Row>
             )}
           </section>
         )
       })}
+
+      {/* Сторис без привязки иначе не видно нигде: в сетке им негде стоять,
+          а в сроке они появятся только со своим днём. */}
+      {loose.length > 0 && (
+        <section className="mb-7">
+          <h3 className="mb-2 font-ed text-[15px] font-semibold tracking-[-0.015em]">
+            Сторис без привязки
+          </h3>
+          <Row label="">
+            {loose.map(s => (
+              <Chip key={s.id} onClick={onEditStory && (() => onEditStory(s.id))}>
+                {s.body || "без текста"}
+              </Chip>
+            ))}
+          </Row>
+        </section>
+      )}
     </div>
+  )
+}
+
+function Row({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <p className="mt-2 flex flex-wrap items-baseline gap-x-1.5 gap-y-1 text-[11.5px]">
+      {label && <span className="text-ink/45">{label}:</span>}
+      {children}
+    </p>
+  )
+}
+
+function Chip({ onClick, children }: { onClick?: () => void; children: React.ReactNode }) {
+  if (!onClick) return <span className="text-ink/70">{children}</span>
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="rounded-md bg-ink/[0.05] px-1.5 py-0.5 text-ink/70 hover:bg-ink/10 hover:text-ink"
+    >
+      {children}
+    </button>
   )
 }
 

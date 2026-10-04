@@ -7,6 +7,7 @@ import { queue } from "../lib/feed"
 import { postShape } from "../lib/post"
 import { FORMAT_ICON, FORMAT_LABEL } from "../ui/formats"
 import { SERIES_PALETTE, nextColor } from "../ui/palette"
+import { CHOICE, DIALOG, FIELD, LABEL, PRIMARY, QUIET } from "../ui/form"
 
 /**
  * Заведение и правка поста — **одна форма**. Поля те же, и разделять их значило
@@ -27,17 +28,6 @@ const STATUSES: Array<{ id: Status; label: string }> = [
   { id: "posted", label: "Опубликован" },
   { id: "idea", label: "Идея" },
 ]
-
-const FIELD =
-  "w-full rounded-[10px] bg-ink/[0.05] px-3 py-2 text-[13px] text-ink outline-none " +
-  "placeholder:text-ink/40 focus-visible:outline-2 focus-visible:outline-ink/45"
-
-const LABEL = "mb-1.5 block text-[10.5px] font-medium tracking-[0.06em] text-ink/45 uppercase"
-
-const CHOICE = (on: boolean) =>
-  `flex-1 rounded-lg px-2 py-1.5 text-[12px] font-medium transition-colors ${
-    on ? "bg-ink text-on-fill" : "bg-ink/[0.05] text-ink/70 hover:text-ink"
-  }`
 
 export type Submitted = { post: Post; series?: Series }
 
@@ -158,7 +148,7 @@ export function PostForm({
       ref={dialog}
       onCancel={onCancel}
       onClick={e => { if (e.target === dialog.current) onCancel() }}
-      className="m-auto w-full max-w-[560px] rounded-2xl bg-surface p-0 text-ink backdrop:bg-black/40 backdrop:backdrop-blur-[2px]"
+      className={DIALOG}
     >
       <form onSubmit={submit} className="grid max-h-[86dvh] grid-cols-[132px_1fr] gap-4 overflow-y-auto p-5">
         {/* Превью рядом с полями: когда описываешь кадр, его надо видеть. Пока
@@ -376,14 +366,14 @@ export function PostForm({
             <button
               type="submit"
               disabled={!ready}
-              className="rounded-[10px] bg-ink px-4 py-2 text-[13px] font-semibold text-on-fill disabled:opacity-40"
+              className={PRIMARY}
             >
               {post ? "Сохранить" : "Добавить"}
             </button>
             <button
               type="button"
               onClick={onCancel}
-              className="rounded-[10px] bg-ink/[0.05] px-3.5 py-2 text-[13px] font-medium hover:bg-ink/10"
+              className={QUIET}
             >
               Отмена
             </button>

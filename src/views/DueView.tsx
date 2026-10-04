@@ -33,10 +33,12 @@ export function DueView({
   board,
   today,
   onOpen,
+  onEditStory,
 }: {
   board: Board
   today: string
   onOpen: (id: string) => void
+  onEditStory?: (id: string) => void
 }) {
   const lookup = seriesLookup(board)
   const posts = boardPosts(board)
@@ -130,9 +132,26 @@ export function DueView({
               {told.length === 0 ? (
                 <p className="text-[11.5px] text-ink/28">ни одной сторис</p>
               ) : (
-                <p className="px-1.5 text-[11.5px] text-ink/70">
-                  {told.length} {plural(told.length, "сторис", "сторис", "сторис")}
-                  <span className="text-ink/45"> · {told.map(s => s.body || "без текста").join(" · ")}</span>
+                <p className="flex flex-wrap items-baseline gap-x-1.5 px-1.5 text-[11.5px]">
+                  <span className="text-ink/45">
+                    {told.length} {plural(told.length, "сторис", "сторис", "сторис")}:
+                  </span>
+                  {told.map(s =>
+                    onEditStory ? (
+                      <button
+                        key={s.id}
+                        type="button"
+                        onClick={() => onEditStory(s.id)}
+                        className="rounded-md bg-ink/[0.05] px-1.5 py-0.5 text-ink/70 hover:bg-ink/10 hover:text-ink"
+                      >
+                        {s.body || "без текста"}
+                      </button>
+                    ) : (
+                      <span key={s.id} className="text-ink/70">
+                        {s.body || "без текста"}
+                      </span>
+                    ),
+                  )}
                 </p>
               )}
             </div>

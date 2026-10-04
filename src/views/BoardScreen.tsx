@@ -1,4 +1,5 @@
 import { useState } from "react"
+import { Plus } from "lucide-react"
 import type { Board } from "../types/model"
 import { Feed } from "./Feed"
 import { SeriesView } from "./SeriesView"
@@ -21,21 +22,32 @@ const TABS: Array<{ id: View; label: string; hint: string }> = [
   { id: "due", label: "Срок", hint: "Нет ли дырок во времени и насколько вперёд набрано" },
 ]
 
+/** Что открыть в форме. Без `id` — завести новое. */
+export type Edit = { kind: "post" | "story" | "highlight"; id?: string }
+
 type Props = {
   board: Board
   today: string
-  onOpen: (id: string) => void
-  onAdd?: () => void
+  /** Отсутствует там, где писать нельзя. Кнопок тогда нет, а не отключены. */
+  onEdit?: (what: Edit) => void
   onMove?: (id: string, to: number) => void
   covers?: Map<string, string>
 }
 
-export function BoardScreen({ board, today, onOpen, onAdd, onMove, covers }: Props) {
+const ADD: Array<{ kind: Edit["kind"]; label: string }> = [
+  { kind: "post", label: "Пост" },
+  { kind: "story", label: "Сторис" },
+  { kind: "highlight", label: "Актуальное" },
+]
+
+export function BoardScreen({ board, today, onEdit, onMove, covers }: Props) {
   const [view, setView] = useState<View>("grid")
+  const open = (what: Edit) => onEdit?.(what)
 
   return (
     <>
-      <nav className="mt-4 flex gap-0.5 rounded-full bg-ink/[0.05] p-0.5 justify-self-start">
+      <div className="mt-4 flex flex-wrap items-center gap-2">
+      <nav className="flex gap-0.5 rounded-full bg-ink/[0.05] p-0.5">
         {TABS.map(t => (
           <button
             key={t.id}
@@ -52,18 +64,50 @@ export function BoardScreen({ board, today, onOpen, onAdd, onMove, covers }: Pro
         ))}
       </nav>
 
+      {/* Заводить можно из любого вида: мысль «надо сторис» приходит не только
+          там, где сторис видно. */}
+      {onEdit && (
+        <span className="ml-auto flex gap-1.5">
+          {ADD.map(a => (
+            <button
+              key={a.kind}
+              type="button"
+              onClick={() => open({ kind: a.kind })}
+              className="flex items-center gap-1 rounded-lg bg-ink/[0.05] px-2.5 py-1.5 text-[12px] font-medium hover:bg-ink/10"
+            >
+              <Plus size={13} strokeWidth={2.2} />
+              {a.label}
+            </button>
+          ))}
+        </span>
+      )}
+      </div>
+
       {view === "grid" && (
         <Feed
           board={board}
           today={today}
-          onOpen={onOpen}
-          onAdd={onAdd}
+          onOpen={id => open({ kind: "post", id })}
           onMove={onMove}
           covers={covers}
         />
       )}
-      {view === "series" && <SeriesView board={board} onOpen={onOpen} />}
-      {view === "due" && <DueView board={board} today={today} onOpen={onOpen} />}
+      {view === "series" && (
+        <SeriesView
+          board={board}
+          onOpen={id => open({ kind: "post", id })}
+          onEditStory={onEdit ? id => open({ kind: "story", id }) : undefined}
+          onEditHighlight={onEdit ? id => open({ kind: "highlight", id }) : undefined}
+        />
+      )}
+      {view === "due" && (
+        <DueView
+          board={board}
+          today={today}
+          onOpen={id => open({ kind: "post", id })}
+          onEditStory={onEdit ? id => open({ kind: "story", id }) : undefined}
+        />
+      )}
     </>
   )
 }

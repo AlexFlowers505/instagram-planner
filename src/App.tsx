@@ -9,10 +9,12 @@ import { DEMO_BOARD, DEMO_TODAY } from "./data/demoBoard"
 import { todayKey } from "./lib/date"
 import { boardPosts, queue } from "./lib/feed"
 import { freshRanks, rankForMove } from "./lib/rank"
-import { type Board, EMPTY_BOARD } from "./types/model"
+import { type Board, EMPTY_BOARD, type Highlight, type Story } from "./types/model"
 import { AuthScreen } from "./views/AuthScreen"
 import { BoardScreen } from "./views/BoardScreen"
 import { type Submitted, PostForm } from "./views/PostForm"
+import { StoryForm } from "./views/StoryForm"
+import { HighlightForm } from "./views/HighlightForm"
 import { LoadFailed, NoDatabase, SaveFailedBanner, SetPassword } from "./views/Screens"
 import { SelfCheckPanel } from "./views/SelfCheckPanel"
 
@@ -28,10 +30,11 @@ import { SelfCheckPanel } from "./views/SelfCheckPanel"
  * руками в эффекте.
  */
 /**
- * Что открыто в форме. Одно состояние вместо пары «добавляем» и «правим»:
- * открыты они не бывают одновременно, а два флага это допускали бы.
+ * Что открыто в форме: какая сущность и какая строка. Отсутствующий `id`
+ * значит «заводим новую» — отдельного состояния для этого не нужно, а два
+ * флага допускали бы «правим и заводим одновременно», чего не бывает.
  */
-type Editor = { kind: "new" } | { kind: "post"; id: string }
+export type Editor = { kind: "post" | "story" | "highlight"; id?: string }
 
 type LoadState =
   | { kind: "idle" }
@@ -54,8 +57,8 @@ function DemoApp() {
   const [board, setBoard] = useState<Board>(DEMO_BOARD)
   const [editor, setEditor] = useState<Editor | null>(null)
 
-  const editing =
-    editor?.kind === "post" ? board.posts.find(p => p.id === editor.id) : undefined
+  const found = <T extends { id: string }>(rows: T[]) =>
+    editor?.id ? rows.find(r => r.id === editor.id) : undefined
 
   return (
     <div className="mx-auto max-w-[880px] px-4 py-6">
@@ -65,15 +68,14 @@ function DemoApp() {
       <BoardScreen
         board={board}
         today={DEMO_TODAY}
-        onOpen={id => setEditor({ kind: "post", id })}
-        onAdd={() => setEditor({ kind: "new" })}
+        onEdit={setEditor}
         onMove={(id, to) => setBoard(b => withMove(b, id, to)?.board ?? b)}
       />
-      {editor && (
+      {editor?.kind === "post" && (
         <PostForm
-          key={editor.kind === "post" ? editor.id : "new"}
+          key={editor.id ?? "new"}
           board={board}
-          post={editing}
+          post={found(board.posts)}
           onCancel={() => setEditor(null)}
           onSubmit={({ post, series }) => {
             setBoard(b => ({
@@ -91,8 +93,67 @@ function DemoApp() {
           }}
         />
       )}
+
+      {editor?.kind === "story" && (
+        <StoryForm
+          key={editor.id ?? "new"}
+          board={board}
+          story={found(board.stories)}
+          onCancel={() => setEditor(null)}
+          onSubmit={story => {
+            setBoard(b => ({
+              ...b,
+              stories: b.stories.some(x => x.id === story.id)
+                ? b.stories.map(x => (x.id === story.id ? story : x))
+                : [...b.stories, story],
+            }))
+            setEditor(null)
+          }}
+          onDelete={id => {
+            setBoard(b => withoutStory(b, id))
+            setEditor(null)
+          }}
+        />
+      )}
+
+      {editor?.kind === "highlight" && (
+        <HighlightForm
+          key={editor.id ?? "new"}
+          board={board}
+          highlight={found(board.highlights)}
+          onCancel={() => setEditor(null)}
+          onSubmit={highlight => {
+            setBoard(b => ({
+              ...b,
+              highlights: b.highlights.some(x => x.id === highlight.id)
+                ? b.highlights.map(x => (x.id === highlight.id ? highlight : x))
+                : [...b.highlights, highlight],
+            }))
+            setEditor(null)
+          }}
+          onDelete={id => {
+            setBoard(b => ({ ...b, highlights: b.highlights.filter(h => h.id !== id) }))
+            setEditor(null)
+          }}
+        />
+      )}
     </div>
   )
+}
+
+/**
+ * Доска без сторис — и без ссылок на неё в актуальном. На сервере второе
+ * делает триггер `highlights_forget_story()`, поэтому операция всё равно
+ * одна; здесь то же повторяется в памяти.
+ */
+function withoutStory(board: Board, id: string): Board {
+  return {
+    ...board,
+    stories: board.stories.filter(s => s.id !== id),
+    highlights: board.highlights.map(h =>
+      h.storyIds.includes(id) ? { ...h, storyIds: h.storyIds.filter(x => x !== id) } : h,
+    ),
+  }
 }
 
 /**
@@ -277,6 +338,47 @@ export default function App() {
     setEditor(null)
   }
 
+  function saveStory(story: Story) {
+    const known = board.stories.some(s => s.id === story.id)
+    persist(
+      {
+        ...board,
+        stories: known
+          ? board.stories.map(s => (s.id === story.id ? story : s))
+          : [...board.stories, story],
+      },
+      opUpsert("story", story.id),
+    )
+    setEditor(null)
+  }
+
+  function deleteStory(id: string) {
+    persist(withoutStory(board, id), opDelete("story", id))
+    setEditor(null)
+  }
+
+  function saveHighlight(highlight: Highlight) {
+    const known = board.highlights.some(h => h.id === highlight.id)
+    persist(
+      {
+        ...board,
+        highlights: known
+          ? board.highlights.map(h => (h.id === highlight.id ? highlight : h))
+          : [...board.highlights, highlight],
+      },
+      opUpsert("highlight", highlight.id),
+    )
+    setEditor(null)
+  }
+
+  function deleteHighlight(id: string) {
+    persist(
+      { ...board, highlights: board.highlights.filter(h => h.id !== id) },
+      opDelete("highlight", id),
+    )
+    setEditor(null)
+  }
+
   if (DEMO) return <DemoApp />
 
   if (!CLOUD_ENABLED) return <NoDatabase />
@@ -315,26 +417,43 @@ export default function App() {
         <BoardScreen
           board={board}
           today={todayKey()}
-          onOpen={id => setEditor({ kind: "post", id })}
-          onAdd={() => setEditor({ kind: "new" })}
+          onEdit={setEditor}
           onMove={movePost}
           covers={covers}
         />
       )}
 
-      {editor && (
+      {editor?.kind === "post" && (
         <PostForm
-          key={editor.kind === "post" ? editor.id : "new"}
+          key={editor.id ?? "new"}
           board={board}
-          post={editor.kind === "post" ? board.posts.find(p => p.id === editor.id) : undefined}
+          post={board.posts.find(p => p.id === editor.id)}
           onSubmit={savePost}
           onUpload={userId ? file => uploadCover(userId, file) : undefined}
-          coverUrl={
-            editor.kind === "post"
-              ? covers.get(board.posts.find(p => p.id === editor.id)?.coverPath ?? "")
-              : undefined
-          }
+          coverUrl={covers.get(board.posts.find(p => p.id === editor.id)?.coverPath ?? "")}
           onDelete={deletePost}
+          onCancel={() => setEditor(null)}
+        />
+      )}
+
+      {editor?.kind === "story" && (
+        <StoryForm
+          key={editor.id ?? "new"}
+          board={board}
+          story={board.stories.find(s => s.id === editor.id)}
+          onSubmit={saveStory}
+          onDelete={deleteStory}
+          onCancel={() => setEditor(null)}
+        />
+      )}
+
+      {editor?.kind === "highlight" && (
+        <HighlightForm
+          key={editor.id ?? "new"}
+          board={board}
+          highlight={board.highlights.find(h => h.id === editor.id)}
+          onSubmit={saveHighlight}
+          onDelete={deleteHighlight}
           onCancel={() => setEditor(null)}
         />
       )}

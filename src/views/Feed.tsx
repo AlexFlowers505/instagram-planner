@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { ArrowUpDown, Grid2x2, LayoutGrid, Plus, Type } from "lucide-react"
+import { ArrowUpDown, Grid2x2, LayoutGrid, Type } from "lucide-react"
 import type { Board, Post } from "../types/model"
 import { seriesLookup } from "../lib/series"
 import { boardPosts, clashesOf, ideas, posted, queue, rhythm } from "../lib/feed"
@@ -29,16 +29,13 @@ type Props = {
   board: Board
   today: string
   onOpen: (id: string) => void
-  /** Отсутствует там, где писать нельзя — например в образце данных.
-      Кнопка тогда не отключена, а её нет: так не нужно объяснять отказ. */
-  onAdd?: () => void
   /** `to` — место в очереди по рангу, не на экране. */
   onMove?: (id: string, to: number) => void
   /** Путь обложки → подписанная ссылка. */
   covers?: Map<string, string>
 }
 
-export function Feed({ board, today, onOpen, onAdd, onMove, covers }: Props) {
+export function Feed({ board, today, onOpen, onMove, covers }: Props) {
   const coverOf = (p: Post) => (p.coverPath ? covers?.get(p.coverPath) : undefined)
   const [density, setDensity] = useState<Density>("captions")
   const [profileOrder, setProfileOrder] = useState(true)
@@ -89,18 +86,6 @@ export function Feed({ board, today, onOpen, onAdd, onMove, covers }: Props) {
 
         <span className="flex-1" />
 
-        {onAdd && (
-          <button
-            type="button"
-            onClick={onAdd}
-            title="Добавить пост"
-            className="flex items-center gap-1.5 rounded-lg bg-ink px-2.5 py-1.5 text-[12px] font-semibold text-on-fill"
-          >
-            <Plus size={14} strokeWidth={2.2} />
-            Пост
-          </button>
-        )}
-
         <button
           type="button"
           onClick={() => setProfileOrder(v => !v)}
@@ -135,7 +120,7 @@ export function Feed({ board, today, onOpen, onAdd, onMove, covers }: Props) {
 
       {posts.length === 0 && (
         <p className="max-w-[52ch] text-[13px] text-ink/70">
-          Доска пустая. Добавь первый пост — или открой{" "}
+          Доска пустая. Заведи первый пост кнопкой сверху — или открой{" "}
           <code className="text-ink">?demo=1</code>, чтобы посмотреть, как сетка
           выглядит с содержимым.
         </p>
