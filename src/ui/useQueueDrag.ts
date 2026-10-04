@@ -145,29 +145,42 @@ export function useQueueDrag(ids: string[], onDrop: (id: string, to: number) => 
         setOrder(live.current)
       }
 
-      el.style.transform = `translate(${dx - shift.current.x}px, ${dy - shift.current.y}px)`
-
-      // Куда он метит: ближайшая по центру плитка очереди. Сетка переносится,
-      // поэтому считать надо по обеим осям, а не по одной горизонтали.
-      let nearest = -1
-      let best = Infinity
-      live.current.forEach((other, i) => {
-        const node = nodes().get(other)
-        if (!node) return
-        const r = node.getBoundingClientRect()
-        const d = Math.hypot(r.left + r.width / 2 - ev.clientX, r.top + r.height / 2 - ev.clientY)
-        if (d < best) {
-          best = d
-          nearest = i
-        }
-      })
+      const carry = { x: dx - shift.current.x, y: dy - shift.current.y }
+      el.style.transform = `translate(${carry.x}px, ${carry.y}px)`
 
       const at = live.current.indexOf(id)
-      if (nearest >= 0 && nearest !== at) {
+
+      // Куда он метит. Считается **по месту, на которое наведено**, а не по
+      // ближайшему центру: у ближайшего центра зона попадания — узкая полоса
+      // ровно посередине между плитками, и там же она сама себя отменяет.
+      // Отсюда и бралось дёрганье влево-вправо.
+      let aim = -1
+      for (const [i, other] of live.current.entries()) {
+        const node = nodes().get(other)
+        if (!node) continue
+        const r = node.getBoundingClientRect()
+        // У несомой плитки прямоугольник уехал вместе с ней — её место стоит
+        // там, где она была до смещения.
+        const left = other === id ? r.left - carry.x : r.left
+        const top = other === id ? r.top - carry.y : r.top
+        if (
+          ev.clientX >= left &&
+          ev.clientX <= left + r.width &&
+          ev.clientY >= top &&
+          ev.clientY <= top + r.height
+        ) {
+          aim = i
+          break
+        }
+      }
+
+      // Промежутки между плитками и поля по краям сетки — ничьи, и в них
+      // перестановка просто не меняется. Раньше там шла борьба двух соседей.
+      if (aim >= 0 && aim !== at) {
         framed.current = snapshot()
         const next = [...live.current]
         next.splice(at, 1)
-        next.splice(nearest, 0, id)
+        next.splice(aim, 0, id)
         live.current = next
         setOrder(next)
       }
