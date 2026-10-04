@@ -11,7 +11,7 @@ import { boardPosts, queue } from "./lib/feed"
 import { freshRanks, rankForMove } from "./lib/rank"
 import { type Board, EMPTY_BOARD } from "./types/model"
 import { AuthScreen } from "./views/AuthScreen"
-import { Feed } from "./views/Feed"
+import { BoardScreen } from "./views/BoardScreen"
 import { type Submitted, PostForm } from "./views/PostForm"
 import { LoadFailed, NoDatabase, SaveFailedBanner, SetPassword } from "./views/Screens"
 import { SelfCheckPanel } from "./views/SelfCheckPanel"
@@ -62,7 +62,7 @@ function DemoApp() {
       <p className="mb-4 text-[11.5px] text-ink/45">
         Образец данных — настоящая доска не читается и не пишется
       </p>
-      <Feed
+      <BoardScreen
         board={board}
         today={DEMO_TODAY}
         onOpen={id => setEditor({ kind: "post", id })}
@@ -312,7 +312,7 @@ export default function App() {
       {loading ? (
         <p className="mt-8 text-[13px] text-ink/70">Читаю доску…</p>
       ) : (
-        <Feed
+        <BoardScreen
           board={board}
           today={todayKey()}
           onOpen={id => setEditor({ kind: "post", id })}
