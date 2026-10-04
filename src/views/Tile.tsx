@@ -1,0 +1,122 @@
+import { Lightbulb } from "lucide-react"
+import type { Post, Story } from "../types/model"
+import type { SeriesLookup } from "../lib/series"
+import { placeholderCover } from "../lib/cover"
+import { type Clash, shownDate } from "../lib/feed"
+import { fmtDay, plural } from "../lib/date"
+import { type Density, FORMAT_ICON, FORMAT_LABEL } from "../ui/formats"
+
+/**
+ * Плитка поста в сетке профиля.
+ *
+ * Пропорция 4:5 с обрезкой по центру — **так покажет профиль**, и видеть эту
+ * обрезку и есть смысл. Имени серии здесь нет: его несёт цвет рейки, а
+ * повторённое под каждой картинкой оно и было тем шумом, из-за которого сетка
+ * переставала читаться.
+ */
+
+type Props = {
+  post: Post
+  series: SeriesLookup
+  stories: Story[]
+  clashes: Clash[]
+  density: Density
+  onOpen: (id: string) => void
+}
+
+export function Tile({ post, series, stories, clashes, density, onOpen }: Props) {
+  const color = series.colorOf(post.seriesId)
+  const Icon = FORMAT_ICON[post.format]
+  const day = shownDate(post)
+  const isIdea = post.status === "idea"
+  const flush = density === "flush"
+
+  const title = [series.pathOf(post.seriesId).join(" → "), FORMAT_LABEL[post.format]]
+    .filter(Boolean)
+    .join(" · ")
+
+  return (
+    <button
+      type="button"
+      onClick={() => onOpen(post.id)}
+      title={title}
+      data-status={post.status}
+      className="group grid cursor-pointer gap-[7px] text-left transition-[translate] duration-200 hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-[3px] focus-visible:outline-ink"
+      style={{ gridTemplateRows: density === "captions" ? "auto auto" : "auto" }}
+    >
+      <span
+        className={`relative block aspect-[4/5] max-w-full overflow-hidden bg-cover bg-center ${
+          flush ? "rounded-none" : "rounded-lg"
+        } ${post.status === "planned" && !flush ? "opacity-[0.74]" : ""} ${
+          post.archived ? "opacity-[0.45]" : ""
+        }`}
+        style={{
+          backgroundImage: isIdea ? undefined : placeholderCover(post.id, color),
+          backgroundColor: isIdea ? "color-mix(in oklab, var(--color-ink) 4%, transparent)" : undefined,
+          outline: !flush && post.status !== "posted" ? `1.5px dashed ${color}` : undefined,
+          outlineOffset: "-1.5px",
+        }}
+      >
+        {isIdea && (
+          <span className="grid h-full w-full place-items-center opacity-50" style={{ color }}>
+            <Lightbulb size={26} strokeWidth={1.7} />
+          </span>
+        )}
+
+        {/* Рейка — это и есть серия на плитке. В «как в ленте» её нет: она наша,
+            а не инстаграмовская, и ломает иллюзию, ради которой режим существует. */}
+        {!flush && (
+          <span className="absolute inset-y-0 left-0 z-[2] w-[3px]" style={{ background: color }} />
+        )}
+
+        {!flush && stories.length > 0 && (
+          <span
+            className="absolute top-1.5 left-2 z-[2] flex gap-[2.5px]"
+            title={`${stories.length} ${plural(stories.length, "сторис", "сторис", "сторис")}`}
+          >
+            {stories.map(s => (
+              <i key={s.id} className="block h-[2.5px] w-2.5 rounded-sm bg-white/85" />
+            ))}
+          </span>
+        )}
+
+        {post.archived && !flush && (
+          <span className="absolute bottom-1.5 left-1.5 z-[2] rounded-full bg-[#0B0E12A0] px-1.5 py-px text-[9px] font-medium tracking-[0.05em] text-white uppercase backdrop-blur-sm">
+            архив
+          </span>
+        )}
+
+        {/* Значок формата остаётся даже вплотную: он есть и в настоящем профиле. */}
+        <span
+          className="absolute top-[5px] right-[5px] z-[2] grid h-[19px] w-[19px] place-items-center rounded-md bg-[#0B0E12A0] text-white backdrop-blur-sm"
+          aria-label={FORMAT_LABEL[post.format]}
+        >
+          <Icon size={11} strokeWidth={1.9} />
+        </span>
+      </span>
+
+      {density === "captions" && (
+        /* Высота зарезервирована: строка сетки высотой с самую высокую подпись,
+           поэтому рваные заголовки дали бы рваные строки. */
+        <span className="grid min-h-[3.1rem] content-start gap-px">
+          <span className="line-clamp-2 text-[12.5px] leading-[1.32] text-ink">{post.heading}</span>
+          {!isIdea && (
+            <span
+              className={`text-[10.5px] tabular-nums ${clashes.length ? "text-warn" : "text-ink/45"}`}
+              title={clashes.length ? clashes.map(c => c.text).join("; ") : undefined}
+            >
+              {clashes.length > 0 && (
+                <i className="mr-[3px] inline-block h-[5px] w-[5px] rounded-full bg-warn align-[1px]" />
+              )}
+              {post.status === "posted"
+                ? fmtDay(day)
+                : day
+                  ? `~${fmtDay(day)}`
+                  : "без ориентира"}
+            </span>
+          )}
+        </span>
+      )}
+    </button>
+  )
+}

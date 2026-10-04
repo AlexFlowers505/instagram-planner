@@ -3,8 +3,11 @@ import { useCloudAuth, signOut } from "./data/auth"
 import { loadBoard } from "./data/load"
 import { type QueueStatus, type SaveQueue, createSaveQueue } from "./data/queue"
 import { CLOUD_ENABLED, PROJECT_REF } from "./data/supabase"
+import { DEMO_BOARD, DEMO_TODAY } from "./data/demoBoard"
+import { todayKey } from "./lib/date"
 import { type Board, EMPTY_BOARD } from "./types/model"
 import { AuthScreen } from "./views/AuthScreen"
+import { Feed } from "./views/Feed"
 import { LoadFailed, NoDatabase, SaveFailedBanner, SetPassword } from "./views/Screens"
 import { SelfCheckPanel } from "./views/SelfCheckPanel"
 
@@ -23,6 +26,13 @@ type LoadState =
   | { kind: "idle" }
   | { kind: "ok"; userId: string; board: Board }
   | { kind: "failed"; userId: string; error: string }
+
+/**
+ * Образец данных для работы над видом: `?demo=1` в режиме разработки. Нужен
+ * затем, что проверять разметку на настоящих данных владельца незачем, а в
+ * панели предпросмотра нет его сессии.
+ */
+const DEMO = import.meta.env.DEV && new URLSearchParams(location.search).has("demo")
 
 export default function App() {
   const { ready, session, recovery, clearRecovery } = useCloudAuth()
@@ -75,6 +85,17 @@ export default function App() {
     return () => { alive = false }
   }, [userId, reloadAt])
 
+  if (DEMO) {
+    return (
+      <div className="mx-auto max-w-[880px] px-4 py-6">
+        <p className="mb-4 text-[11.5px] text-ink/45">
+          Образец данных — настоящая доска не читается и не пишется
+        </p>
+        <Feed board={DEMO_BOARD} today={DEMO_TODAY} onOpen={() => {}} />
+      </div>
+    )
+  }
+
   if (!CLOUD_ENABLED) return <NoDatabase />
   if (!ready) return null
   if (recovery) return <SetPassword onDone={clearRecovery} />
@@ -105,16 +126,17 @@ export default function App() {
         </button>
       </header>
 
-      <p className="mt-8 text-[13px] text-ink/70">
-        {loading
-          ? "Читаю доску…"
-          : `Прочитано: ${board.posts.length} постов, ${board.series.length} серий, ` +
-            `${board.stories.length} сторис, ${board.highlights.length} актуальных.`}
-      </p>
-      <p className="mt-2 text-[12px] text-ink/45">
-        Доска ещё не собрана — пока это только вход и слой данных. Образец видов
-        и движения лежит в <code className="text-ink/70">prototype/feed-board.html</code>.
-      </p>
+      {loading ? (
+        <p className="mt-8 text-[13px] text-ink/70">Читаю доску…</p>
+      ) : board.posts.length === 0 ? (
+        <p className="mt-8 max-w-[52ch] text-[13px] text-ink/70">
+          Доска пустая. Добавления постов ещё нет — оно следующим шагом. Чтобы
+          посмотреть, как сетка выглядит с содержимым, открой{" "}
+          <code className="text-ink">?demo=1</code>.
+        </p>
+      ) : (
+        <Feed board={board} today={todayKey()} onOpen={() => {}} />
+      )}
 
       {import.meta.env.DEV && PROJECT_REF && (
         <p className="mt-6 text-[11px] text-ink/28">проект {PROJECT_REF}</p>
