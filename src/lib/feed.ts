@@ -29,8 +29,15 @@ export const queue = (posts: Post[]): Post[] =>
     .filter(p => p.status === "planned")
     .sort((a, b) => (a.rank ?? 0) - (b.rank ?? 0))
 
-/** Идеи не в ленте: у них нет места в очереди. Они лежат на полке. */
-export const ideas = (posts: Post[]): Post[] => posts.filter(p => p.status === "idea")
+/**
+ * Идеи не в ленте: у них нет места в очереди. Они лежат на полке — и у полки
+ * **свой порядок**, тем же дробным рангом. Переставляют чаще всего как раз
+ * здесь: полка и есть то, что ещё не разложено.
+ */
+export const ideas = (posts: Post[]): Post[] =>
+  posts
+    .filter(p => p.status === "idea")
+    .sort((a, b) => (a.rank ?? 0) - (b.rank ?? 0))
 
 /** Лента по порядку выхода: сначала вышедшее, потом очередь. */
 export const feedOrder = (posts: Post[]): Post[] => [...posted(posts), ...queue(posts)]

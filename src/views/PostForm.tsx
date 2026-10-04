@@ -3,7 +3,7 @@ import { Trash2 } from "lucide-react"
 import type { Board, Format, Post, Series, SeriesKind, Status } from "../types/model"
 import { seriesLookup } from "../lib/series"
 import { placeholderCover } from "../lib/cover"
-import { queue } from "../lib/feed"
+import { ideas, queue } from "../lib/feed"
 import { postShape } from "../lib/post"
 import { knownTags, tagKey, withTag, withoutTag } from "../lib/tags"
 import { FORMAT_ICON, FORMAT_LABEL } from "../ui/formats"
@@ -133,9 +133,11 @@ export function PostForm({
       targetSeries = series.id
     }
 
-    // Новый запланированный встаёт в конец очереди: трогается одна строка — его
-    // собственная, и ни один сосед не переписывается.
-    const last = queue(board.posts).at(-1)?.rank ?? null
+    // Новое встаёт в конец своего списка: запланированное — очереди, идея —
+    // полки. Трогается одна строка, его собственная, и ни один сосед не
+    // переписывается.
+    const siblings = status === "idea" ? ideas(board.posts) : queue(board.posts)
+    const last = siblings.at(-1)?.rank ?? null
 
     onSubmit({
       series,

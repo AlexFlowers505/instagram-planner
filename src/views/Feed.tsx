@@ -71,6 +71,13 @@ export function Feed({ board, today, onOpen, onMove, covers }: Props) {
     },
   )
 
+  // Полка — отдельный список, значит и жест над ней отдельный: плитка из
+  // очереди не может уехать в идеи, у них разные законы.
+  const shelfDrag = useQueueDrag(
+    shelf.map(p => p.id),
+    (id, at) => onMove?.(id, at),
+  )
+
   const byId = new Map(posts.map(p => [p.id, p]))
   const carriedQueue: Post[] = drag.order
     ? drag.order.map(id => byId.get(id)).filter((p): p is Post => Boolean(p))
@@ -86,6 +93,10 @@ export function Feed({ board, today, onOpen, onMove, covers }: Props) {
   // Идеи стоят рядом с очередью, а не в конце страницы: они её продолжение —
   // то, что ещё не встало в ряд. «Как в профиле» очередь сверху, значит и
   // полка сверху; по порядку выхода очередь внизу, и полка уходит вниз.
+  const shelfShown = shelfDrag.order
+    ? shelfDrag.order.map(id => byId.get(id)).filter((p): p is Post => Boolean(p))
+    : shelf
+
   const shelfBlock = shelf.length > 0 && density !== "flush" && (
     <section className={profileOrder ? "mb-6 max-w-[720px]" : "mt-6 max-w-[720px]"}>
       <div className="mb-2.5 flex items-center gap-2">
@@ -95,7 +106,7 @@ export function Feed({ board, today, onOpen, onMove, covers }: Props) {
         <span className="text-[11.5px] tabular-nums text-ink/45">{shelf.length}</span>
       </div>
       <div className={`grid grid-cols-3 ${GAP[density]}`}>
-        {shelf.map(post => (
+        {shelfShown.map(post => (
           <Tile
             key={post.id}
             post={post}
@@ -105,7 +116,12 @@ export function Feed({ board, today, onOpen, onMove, covers }: Props) {
             density={density}
             cover={coverOf(post)}
             shows={shows}
-            onOpen={onOpen}
+            onOpen={id => {
+              if (!shelfDrag.justDragged()) onOpen(id)
+            }}
+            movable={Boolean(onMove)}
+            elementRef={onMove ? el => shelfDrag.register(post.id, el) : undefined}
+            onPointerDown={onMove ? e => shelfDrag.onPointerDown(e, post.id) : undefined}
           />
         ))}
       </div>

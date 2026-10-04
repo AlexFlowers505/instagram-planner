@@ -7,7 +7,7 @@ import { type QueueStatus, type SaveQueue, createSaveQueue } from "./data/queue"
 import { CLOUD_ENABLED, PROJECT_REF } from "./data/supabase"
 import { DEMO_BOARD, DEMO_TODAY } from "./data/demoBoard"
 import { todayKey } from "./lib/date"
-import { boardPosts, queue } from "./lib/feed"
+import { boardPosts, ideas, queue } from "./lib/feed"
 import { freshRanks, rankForMove } from "./lib/rank"
 import { type Board, EMPTY_BOARD, type Highlight, type Story } from "./types/model"
 import { AuthScreen } from "./views/AuthScreen"
@@ -165,15 +165,21 @@ function withoutStory(board: Board, id: string): Board {
  * случается оно примерно раз в тысячу переносов в одно и то же место.
  */
 function withMove(board: Board, id: string, to: number): { board: Board; touched: string[] } | null {
-  const q = queue(boardPosts(board))
+  const moving = board.posts.find(p => p.id === id)
+  if (!moving) return null
+
+  // Очередь и полка идей — **два разных списка**, и ранг в каждом свой.
+  // Сравнивать их между собой незачем: рядом они никогда не стоят.
+  const all = boardPosts(board)
+  const q = moving.status === "idea" ? ideas(all) : queue(all)
+
   const from = q.findIndex(p => p.id === id)
   if (from < 0 || to < 0 || to >= q.length || from === to) return null
 
-  const rank = rankForMove(
-    q.map(p => p.rank ?? 0),
-    from,
-    to,
-  )
+  // У идей, заведённых до того, как у полки появился порядок, ранга нет.
+  // Делить нечего — список нумеруется заново целиком, один раз.
+  const ranked = q.every(p => p.rank != null)
+  const rank = ranked ? rankForMove(q.map(p => p.rank ?? 0), from, to) : null
 
   if (rank !== null) {
     return {
@@ -186,12 +192,12 @@ function withMove(board: Board, id: string, to: number): { board: Board; touched
   next.splice(from, 1)
   next.splice(to, 0, q[from])
   const fresh = freshRanks(next.length)
-  const ranked = new Map(next.map((p, i) => [p.id, fresh[i]]))
+  const renumbered = new Map(next.map((p, i) => [p.id, fresh[i]]))
   return {
     board: {
       ...board,
       posts: board.posts.map(p => {
-        const r = ranked.get(p.id)
+        const r = renumbered.get(p.id)
         return r === undefined ? p : { ...p, rank: r }
       }),
     },

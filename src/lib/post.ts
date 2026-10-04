@@ -20,8 +20,12 @@ export function postShape(
   was: Post | null,
   lastRank: number | null,
 ): Pick<Post, "publishedOn" | "targetOn" | "rank"> {
-  // У идеи нет места в очереди, значит нет и дня, который это место дал бы.
-  if (status === "idea") return { publishedOn: null, targetOn: null, rank: null }
+  // У идеи нет дня: ни настоящего, ни ориентира — места в очереди, из которого
+  // он взялся бы, у неё тоже нет. Ранг при этом есть: он держит порядок полки,
+  // а `lastRank` для идеи — последняя идея, не последний запланированный.
+  if (status === "idea") {
+    return { publishedOn: null, targetOn: null, rank: was?.rank ?? rankBetween(lastRank, null) }
+  }
 
   if (status === "posted") {
     return {
