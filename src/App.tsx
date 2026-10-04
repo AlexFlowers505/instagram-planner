@@ -6,6 +6,7 @@ import { CLOUD_ENABLED, PROJECT_REF } from "./data/supabase"
 import { type Board, EMPTY_BOARD } from "./types/model"
 import { AuthScreen } from "./views/AuthScreen"
 import { LoadFailed, NoDatabase, SaveFailedBanner, SetPassword } from "./views/Screens"
+import { SelfCheckPanel } from "./views/SelfCheckPanel"
 
 /**
  * Оболочка: вход, загрузка, очередь записи и то, какой экран сейчас показан.
@@ -118,6 +119,8 @@ export default function App() {
       {import.meta.env.DEV && PROJECT_REF && (
         <p className="mt-6 text-[11px] text-ink/28">проект {PROJECT_REF}</p>
       )}
+
+      {import.meta.env.DEV && <SelfCheckPanel userId={session.user.id} />}
 
       {saveStatus === "failed" && <SaveFailedBanner />}
     </div>
