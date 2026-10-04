@@ -59,7 +59,10 @@ export type Post = {
   /** Место в очереди. Есть только у запланированного. См. `lib/rank.ts`. */
   rank: number | null
   heading: string
+  /** Детали одной строкой. */
   subheading: string
+  /** Длинный текст: черновик подписи, заметки, список кадров. */
+  description: string
   tags: string[]
   /** Путь в хранилище. `null` — обложка ещё не выбрана. */
   coverPath: string | null

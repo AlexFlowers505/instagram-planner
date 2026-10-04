@@ -5,6 +5,7 @@ import { seriesLookup } from "../lib/series"
 import { placeholderCover } from "../lib/cover"
 import { queue } from "../lib/feed"
 import { postShape } from "../lib/post"
+import { knownTags, tagKey, withTag, withoutTag } from "../lib/tags"
 import { FORMAT_ICON, FORMAT_LABEL } from "../ui/formats"
 import { SERIES_PALETTE, nextColor } from "../ui/palette"
 import { CHOICE, DIALOG, FIELD, LABEL, PRIMARY, QUIET } from "../ui/form"
@@ -57,13 +58,15 @@ export function PostForm({
 
   const [heading, setHeading] = useState(post?.heading ?? "")
   const [subheading, setSubheading] = useState(post?.subheading ?? "")
+  const [description, setDescription] = useState(post?.description ?? "")
   const [format, setFormat] = useState<Format>(post?.format ?? "carousel")
   const [status, setStatus] = useState<Status>(post?.status ?? "planned")
   const [seriesId, setSeriesId] = useState<string>(post?.seriesId ?? "")
   // Поле дня одно, а смысл у него разный: у вышедшего это день выхода, у
   // запланированного — ориентир. Показывается тот, который у поста есть.
   const [day, setDay] = useState(post?.publishedOn ?? post?.targetOn ?? "")
-  const [tags, setTags] = useState((post?.tags ?? []).join(", "))
+  const [tags, setTags] = useState<string[]>(post?.tags ?? [])
+  const [newTag, setNewTag] = useState("")
   const [removing, setRemoving] = useState(false)
 
   // Файл уезжает в хранилище сразу при выборе: к отправке формы путь уже
@@ -77,6 +80,8 @@ export function PostForm({
   const [makingSeries, setMakingSeries] = useState(false)
   const [newName, setNewName] = useState("")
   const [newKind, setNewKind] = useState<SeriesKind>("finite")
+  // Пусто — заводим серию верхнего уровня, иначе сюжет внутри выбранной.
+  const [newParent, setNewParent] = useState("")
   const [newColor, setNewColor] = useState(() => nextColor(board.series.map(s => s.color)))
 
   useEffect(() => { dialog.current?.showModal() }, [])
@@ -108,13 +113,23 @@ export function PostForm({
     let targetSeries = seriesId || null
 
     if (makingSeries) {
-      series = {
-        id: crypto.randomUUID(),
-        parentId: null,
-        name: newName.trim(),
-        color: newColor,
-        kind: newKind,
-      }
+      // Цвет и вид есть только у верхнего уровня: у сюжета их нет, и это
+      // проверяет ограничение `series_root_fields` в базе.
+      series = newParent
+        ? {
+            id: crypto.randomUUID(),
+            parentId: newParent,
+            name: newName.trim(),
+            color: null,
+            kind: null,
+          }
+        : {
+            id: crypto.randomUUID(),
+            parentId: null,
+            name: newName.trim(),
+            color: newColor,
+            kind: newKind,
+          }
       targetSeries = series.id
     }
 
@@ -133,13 +148,29 @@ export function PostForm({
         ...postShape(status, day, post ?? null, last),
         heading: heading.trim(),
         subheading: subheading.trim(),
-        tags: tags.split(",").map(t => t.trim()).filter(Boolean),
+        description: description.trim(),
+        tags,
         coverPath,
       },
     })
   }
 
-  const previewColor = makingSeries ? newColor : lookup.colorOf(seriesId || null)
+  const known = knownTags(board.posts)
+  // Показываются первые двенадцать по частоте: меток может быть полсотни,
+  // и стена чипсов тяжелее, чем поле набора.
+  const shownTags = [...new Set([...tags, ...known.slice(0, 12)])]
+
+  function addTag() {
+    setTags(was => withTag(was, newTag, known))
+    setNewTag("")
+  }
+
+  const previewColor =
+    makingSeries && !newParent
+      ? newColor
+      : makingSeries && newParent
+        ? lookup.colorOf(newParent)
+        : lookup.colorOf(seriesId || null)
   // Только что выбранный файл главнее подписанной ссылки: она ещё старая.
   const shown = picked ?? (coverPath && coverPath === post?.coverPath ? coverUrl : null)
 
@@ -205,11 +236,22 @@ export function PostForm({
 
           <div>
             <label className={LABEL} htmlFor="subheading">Подзаголовок</label>
-            <textarea
+            <input
               id="subheading"
               value={subheading}
               onChange={e => setSubheading(e.target.value)}
-              placeholder="Что внутри и зачем — заметка себе, не подпись к публикации"
+              placeholder="Детали одной строкой"
+              className={FIELD}
+            />
+          </div>
+
+          <div>
+            <label className={LABEL} htmlFor="description">Описание</label>
+            <textarea
+              id="description"
+              value={description}
+              onChange={e => setDescription(e.target.value)}
+              placeholder="Длинный текст: черновик подписи, заметки, список кадров"
               rows={3}
               className={`${FIELD} resize-y`}
             />
@@ -288,32 +330,56 @@ export function PostForm({
                   className={FIELD}
                   autoFocus
                 />
-                <div className="flex gap-1">
-                  <button type="button" onClick={() => setNewKind("finite")}
-                    aria-pressed={newKind === "finite"} className={CHOICE(newKind === "finite")}>
-                    Конечная
-                  </button>
-                  <button type="button" onClick={() => setNewKind("rubric")}
-                    aria-pressed={newKind === "rubric"} className={CHOICE(newKind === "rubric")}>
-                    Рубрика
-                  </button>
-                </div>
-                <p className="text-[11px] leading-snug text-ink/45">
-                  Конечную доводят до финала, рубрику подсыпают между плотными кусками
-                </p>
-                <div className="flex flex-wrap gap-1.5">
-                  {SERIES_PALETTE.map(c => (
-                    <button
-                      key={c}
-                      type="button"
-                      onClick={() => setNewColor(c)}
-                      aria-label={`Цвет ${c}`}
-                      aria-pressed={newColor === c}
-                      className={`h-5 w-5 rounded-md ${newColor === c ? "ring-2 ring-ink ring-offset-2 ring-offset-surface" : ""}`}
-                      style={{ background: c }}
-                    />
+                {/* Сюжет — второй и последний уровень: «4 поста про Губэй»
+                    внутри «Китай. Пекин». Глубже не бывает, это держит
+                    триггер `series_two_levels()`. */}
+                <select
+                  value={newParent}
+                  onChange={e => setNewParent(e.target.value)}
+                  className={FIELD}
+                >
+                  <option value="">Новая серия верхнего уровня</option>
+                  {lookup.roots.map(root => (
+                    <option key={root.id} value={root.id}>Сюжет внутри «{root.name}»</option>
                   ))}
-                </div>
+                </select>
+
+                {!newParent && (
+                  <>
+                    <div className="flex gap-1">
+                      <button type="button" onClick={() => setNewKind("finite")}
+                        aria-pressed={newKind === "finite"} className={CHOICE(newKind === "finite")}>
+                        Конечная
+                      </button>
+                      <button type="button" onClick={() => setNewKind("rubric")}
+                        aria-pressed={newKind === "rubric"} className={CHOICE(newKind === "rubric")}>
+                        Рубрика
+                      </button>
+                    </div>
+                    <p className="text-[11px] leading-snug text-ink/45">
+                      Конечную доводят до финала, рубрику подсыпают между плотными кусками
+                    </p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {SERIES_PALETTE.map(c => (
+                        <button
+                          key={c}
+                          type="button"
+                          onClick={() => setNewColor(c)}
+                          aria-label={`Цвет ${c}`}
+                          aria-pressed={newColor === c}
+                          className={`h-5 w-5 rounded-md ${newColor === c ? "ring-2 ring-ink ring-offset-2 ring-offset-surface" : ""}`}
+                          style={{ background: c }}
+                        />
+                      ))}
+                    </div>
+                  </>
+                )}
+
+                {newParent && (
+                  <p className="text-[11px] leading-snug text-ink/45">
+                    Цвет сюжет берёт у своей серии — он один на всю серию
+                  </p>
+                )}
                 <button
                   type="button"
                   onClick={() => setMakingSeries(false)}
@@ -352,14 +418,59 @@ export function PostForm({
           </div>
 
           <div>
-            <label className={LABEL} htmlFor="tags">Метки — через запятую</label>
-            <input
-              id="tags"
-              value={tags}
-              onChange={e => setTags(e.target.value)}
-              placeholder="вечер, люди, цвет"
-              className={FIELD}
-            />
+            <span className={LABEL}>Метки</span>
+            <div className="flex flex-wrap gap-1.5">
+              {shownTags.map(t => {
+                const on = tags.some(x => tagKey(x) === tagKey(t))
+                return (
+                  <button
+                    key={t}
+                    type="button"
+                    aria-pressed={on}
+                    onClick={() =>
+                      setTags(was => (on ? withoutTag(was, t) : withTag(was, t, known)))
+                    }
+                    className={`rounded-full px-2.5 py-1 text-[12px] ${
+                      on ? "bg-ink text-on-fill" : "bg-ink/[0.05] text-ink/70 hover:text-ink"
+                    }`}
+                  >
+                    {t}
+                  </button>
+                )
+              })}
+              {known.length > shownTags.length && (
+                <span className="self-center text-[11px] text-ink/45">
+                  и ещё {known.length - shownTags.length} — найдутся по набору
+                </span>
+              )}
+            </div>
+
+            {/* Новая метка заводится здесь же, но сверяется с уже
+                заведёнными без учёта регистра: «Люди» не должны
+                раздвоиться на «люди». */}
+            <div className="mt-2 flex gap-1.5">
+              <input
+                id="tags"
+                value={newTag}
+                onChange={e => setNewTag(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === "Enter" || e.key === ",") {
+                    e.preventDefault()
+                    addTag()
+                  }
+                }}
+                placeholder="Новая метка"
+                className={FIELD}
+              />
+              <button
+                type="button"
+                onClick={addTag}
+                disabled={!newTag.trim()}
+                className="rounded-[10px] bg-ink/[0.05] px-3 text-[12px] font-medium hover:bg-ink/10 disabled:opacity-40"
+              >
+                Добавить
+              </button>
+            </div>
           </div>
 
           <div className="mt-1 flex items-center gap-2">

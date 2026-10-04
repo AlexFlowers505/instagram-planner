@@ -24,6 +24,8 @@ type Props = {
   onOpen: (id: string) => void
   /** Подписанная ссылка на обложку. Нет — рисуется заглушка цветом серии. */
   cover?: string
+  /** Что показывать в подписи сверх заголовка и даты. */
+  shows?: { subheading: boolean; description: boolean; tags: boolean }
   /** Плитку можно нести — то есть она в очереди. */
   movable?: boolean
   elementRef?: (el: HTMLButtonElement | null) => void
@@ -38,6 +40,7 @@ export function Tile({
   density,
   onOpen,
   cover,
+  shows,
   movable,
   elementRef,
   onPointerDown,
@@ -141,6 +144,24 @@ export function Tile({
            поэтому рваные заголовки дали бы рваные строки. */
         <span className="grid min-h-[3.1rem] content-start gap-px">
           <span className="line-clamp-2 text-[12.5px] leading-[1.32] text-ink">{post.heading}</span>
+
+          {shows?.subheading && post.subheading && (
+            <span className="line-clamp-2 text-[11px] leading-[1.3] text-ink/70">
+              {post.subheading}
+            </span>
+          )}
+
+          {shows?.description && post.description && (
+            <span className="line-clamp-3 text-[11px] leading-[1.3] text-ink/45">
+              {post.description}
+            </span>
+          )}
+
+          {shows?.tags && post.tags.length > 0 && (
+            <span className="truncate text-[10.5px] text-ink/45">
+              {post.tags.join(" · ")}
+            </span>
+          )}
           {!isIdea && (
             <span
               className={`text-[10.5px] tabular-nums ${clashes.length ? "text-warn" : "text-ink/45"}`}

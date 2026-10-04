@@ -19,6 +19,13 @@ const DENSITIES: Array<{ id: Density; icon: typeof Type; title: string }> = [
   { id: "flush", icon: LayoutGrid, title: "Как в ленте — вплотную, без наших пометок" },
 ]
 
+/** Три независимых слоя подписи: состав, замысел и разметка — разные вопросы. */
+const CAPTION_PARTS: Array<{ id: "subheading" | "description" | "tags"; label: string }> = [
+  { id: "subheading", label: "подзаголовок" },
+  { id: "description", label: "описание" },
+  { id: "tags", label: "метки" },
+]
+
 const GAP: Record<Density, string> = {
   captions: "gap-x-[6px] gap-y-[18px]",
   covers: "gap-[6px]",
@@ -39,6 +46,9 @@ export function Feed({ board, today, onOpen, onMove, covers }: Props) {
   const coverOf = (p: Post) => (p.coverPath ? covers?.get(p.coverPath) : undefined)
   const [density, setDensity] = useState<Density>("captions")
   const [profileOrder, setProfileOrder] = useState(true)
+  // Подзаголовок, описание и метки — три разных вопроса к одной сетке,
+  // поэтому три отдельных переключателя, а не один «подробнее».
+  const [shows, setShows] = useState({ subheading: false, description: false, tags: false })
 
   const series = seriesLookup(board)
   const posts = boardPosts(board)
@@ -73,6 +83,35 @@ export function Feed({ board, today, onOpen, onMove, covers }: Props) {
 
   const anyClash = inQueue.some(p => clashesOf(p, inQueue, today).length > 0)
 
+  // Идеи стоят рядом с очередью, а не в конце страницы: они её продолжение —
+  // то, что ещё не встало в ряд. «Как в профиле» очередь сверху, значит и
+  // полка сверху; по порядку выхода очередь внизу, и полка уходит вниз.
+  const shelfBlock = shelf.length > 0 && density !== "flush" && (
+    <section className={profileOrder ? "mb-6 max-w-[720px]" : "mt-6 max-w-[720px]"}>
+      <div className="mb-2.5 flex items-center gap-2">
+        <span className="text-[10.5px] font-medium tracking-[0.07em] text-ink/45 uppercase">
+          Идеи без даты
+        </span>
+        <span className="text-[11.5px] tabular-nums text-ink/45">{shelf.length}</span>
+      </div>
+      <div className={`grid grid-cols-3 ${GAP[density]}`}>
+        {shelf.map(post => (
+          <Tile
+            key={post.id}
+            post={post}
+            series={series}
+            stories={storiesOf(post.id)}
+            clashes={[]}
+            density={density}
+            cover={coverOf(post)}
+            shows={shows}
+            onOpen={onOpen}
+          />
+        ))}
+      </div>
+    </section>
+  )
+
   return (
     <>
       <div className="flex flex-wrap items-center gap-2 pt-3.5 pb-3">
@@ -95,6 +134,27 @@ export function Feed({ board, today, onOpen, onMove, covers }: Props) {
         >
           <ArrowUpDown size={15} strokeWidth={1.9} />
         </button>
+
+        {/* Видно только там, где подпись вообще есть. */}
+        {density === "captions" && (
+          <div className="flex gap-1">
+            {CAPTION_PARTS.map(part => (
+              <button
+                key={part.id}
+                type="button"
+                onClick={() => setShows(was => ({ ...was, [part.id]: !was[part.id] }))}
+                aria-pressed={shows[part.id]}
+                className={`rounded-full px-2 py-1 text-[11px] transition-colors ${
+                  shows[part.id]
+                    ? "bg-ink text-on-fill"
+                    : "bg-ink/[0.05] text-ink/45 hover:text-ink"
+                }`}
+              >
+                {part.label}
+              </button>
+            ))}
+          </div>
+        )}
 
         <div className="flex gap-0.5 rounded-full bg-ink/[0.05] p-0.5">
           {DENSITIES.map(d => {
@@ -126,6 +186,8 @@ export function Feed({ board, today, onOpen, onMove, covers }: Props) {
         </p>
       )}
 
+      {profileOrder && shelfBlock}
+
       <div className={`grid max-w-[720px] grid-cols-3 ${GAP[density]}`}>
         {sequence.map((post, i) => {
           const movable = Boolean(onMove) && post.status === "planned"
@@ -138,6 +200,7 @@ export function Feed({ board, today, onOpen, onMove, covers }: Props) {
                 clashes={clashesOf(post, inQueue, today)}
                 density={density}
                 cover={coverOf(post)}
+                shows={shows}
                 onOpen={id => {
                   // Отпускание после переноса — это не клик по посту.
                   if (!drag.justDragged()) onOpen(id)
@@ -152,32 +215,7 @@ export function Feed({ board, today, onOpen, onMove, covers }: Props) {
         {todayAt === -1 && sequence.length > 0 && <Divider />}
       </div>
 
-      {/* Идей в ленте нет: у них нет места в очереди. И в «как в ленте» полки
-          тоже нет — посетитель её не видит. */}
-      {shelf.length > 0 && density !== "flush" && (
-        <section className="mt-6 max-w-[720px]">
-          <div className="mb-2.5 flex items-center gap-2">
-            <span className="text-[10.5px] font-medium tracking-[0.07em] text-ink/45 uppercase">
-              Идеи без даты
-            </span>
-            <span className="text-[11.5px] tabular-nums text-ink/45">{shelf.length}</span>
-          </div>
-          <div className={`grid grid-cols-3 ${GAP[density]}`}>
-            {shelf.map(post => (
-              <Tile
-                key={post.id}
-                post={post}
-                series={series}
-                stories={storiesOf(post.id)}
-                clashes={[]}
-                density={density}
-                cover={coverOf(post)}
-                onOpen={onOpen}
-              />
-            ))}
-          </div>
-        </section>
-      )}
+      {!profileOrder && shelfBlock}
 
       <p className="mt-8 max-w-[60ch] text-[11.5px] tabular-nums text-ink/45">
         карусели {beat.byFormat.carousel} · фото {beat.byFormat.single} · рилсы {beat.byFormat.reel}

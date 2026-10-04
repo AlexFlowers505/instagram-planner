@@ -42,6 +42,7 @@ export const POST_COLUMNS: Cols<Post> = {
   rank: "rank",
   heading: "heading",
   subheading: "subheading",
+  description: "description",
   tags: "tags",
   coverPath: "cover_path",
 }

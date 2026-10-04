@@ -60,7 +60,7 @@ export async function runSelfCheck(userId: string): Promise<CheckResult[]> {
   const mkPost = (id: string, rank: number | null, status: Post["status"]): Post => ({
     id, seriesId: plotId, format: "carousel", status,
     archived: false, publishedOn: null, targetOn: null, rank,
-    heading: "проверка", subheading: "", tags: ["проверка"], coverPath: null,
+    heading: "проверка", subheading: "", description: "", tags: ["проверка"], coverPath: null,
   })
 
   // Доска, из которой `applyWriteOp` берёт содержимое. Так проверяется весь

@@ -30,12 +30,14 @@ export const DEMO_BOARD: Board = {
       publishedOn: "2026-08-22", targetOn: null, rank: null,
       heading: "Лучший суп в моей жизни был в подвале",
       subheading: "Случайная забегаловка на две табуретки, вывеска от руки. Фото на вытянутой руке, лицо — отдельный жанр.",
+      description: "",
       tags: ["смешное", "я в кадре", "еда"], coverPath: null },
 
     { id: "p02", seriesId: "duo", format: "single", status: "posted", archived: false,
       publishedOn: "2026-08-30", targetOn: null, rank: null,
       heading: "Мы и очень большой десерт",
       subheading: "Взяли один на двоих, съели каждый свой. Тёплый кадр, ничего не планировали, и поэтому он работает.",
+      description: "",
       tags: ["тёплое", "я в кадре", "вдвоём"], coverPath: null },
 
     // Вышел позже, чем собирался: ориентир переживает публикацию нарочно.
@@ -43,24 +45,28 @@ export const DEMO_BOARD: Board = {
       publishedOn: "2026-09-12", targetOn: "2026-09-10", rank: null,
       heading: "Парк, в который приходят жить",
       subheading: "Цзиншань целиком: пионы, фудкорты, люди в костюмах династии и мужчина, который поёт у стены каждое утро. Десять кадров, чтобы стало понятно: это не музей, а район.",
+      description: "",
       tags: ["люди", "цвет", "день"], coverPath: null },
 
     { id: "p04", seriesId: "cn-jingshan", format: "carousel", status: "posted", archived: false,
       publishedOn: "2026-09-18", targetOn: null, rank: null,
       heading: "Павильон Ваньчунь",
       subheading: "Самая высокая точка старого Пекина. Вид на Гугун сверху, очередь на подъём и почему сюда идут именно к закату.",
+      description: "",
       tags: ["вид", "архитектура", "закат"], coverPath: null },
 
     { id: "p05", seriesId: "cn-food", format: "carousel", status: "posted", archived: false,
       publishedOn: "2026-09-26", targetOn: null, rank: null,
       heading: "Я не прочитал ни одного меню",
       subheading: "Утка, лапша с кунжутной пастой, баоцзы на пару и штука, название которой я до сих пор не знаю. Заказывал пальцем.",
+      description: "",
       tags: ["еда", "цвет", "смешное"], coverPath: null },
 
     { id: "p06", seriesId: "cn", format: "reel", status: "posted", archived: false,
       publishedOn: "2026-10-01", targetOn: null, rank: null,
       heading: "Пекин на скорости",
       subheading: "Монтаж из метро, хутунов и вечерней Ванфуцзин. Двадцать секунд, чтобы было понятно, какой это город.",
+      description: "",
       tags: ["движение", "город"], coverPath: null },
 
     // Ориентир уже в прошлом — первое расхождение.
@@ -68,6 +74,7 @@ export const DEMO_BOARD: Board = {
       publishedOn: null, targetOn: "2026-10-02", rank: r(1),
       heading: "Вечерняя архитектура Цзиншаня",
       subheading: "Те же постройки после заката: подсветка, красные колонны, пустые дорожки, синий воздух. Снимал в последний вечер.",
+      description: "",
       tags: ["архитектура", "вечер", "цвет"], coverPath: null },
 
     // Стоит в очереди раньше p09, а намечен позже — второе расхождение.
@@ -75,12 +82,14 @@ export const DEMO_BOARD: Board = {
       publishedOn: null, targetOn: "2026-10-20", rank: r(2),
       heading: "Что мы делали ночами",
       subheading: "Ночной Пекин: барахолка, караоке, велосипеды в три часа и очередь за шашлыком. Самый быстрый монтаж из всей поездки.",
+      description: "",
       tags: ["движение", "ночь", "смешное"], coverPath: null },
 
     { id: "p09", seriesId: "cn-night", format: "carousel", status: "planned", archived: false,
       publishedOn: null, targetOn: "2026-10-17", rank: r(3),
       heading: "Люди ночного Пекина",
       subheading: "Портреты тех, кого встретили: таксист, продавец шашлыков, две девушки с гитарой у перехода. Снято на 35 мм, почти без света.",
+      description: "",
       tags: ["люди", "ночь"], coverPath: null },
 
     // Без ориентира: просто стоит в очереди.
@@ -88,18 +97,21 @@ export const DEMO_BOARD: Board = {
       publishedOn: null, targetOn: null, rank: r(4),
       heading: "Один кадр, который всё объясняет",
       subheading: "Финал серии про Пекин. Одно фото, подпись в три строки, больше ничего — после четырёх каруселей нужна пауза.",
+      description: "",
       tags: ["тихое", "город"], coverPath: null },
 
     { id: "p11", seriesId: "duo", format: "reel", status: "idea", archived: false,
       publishedOn: null, targetOn: null, rank: null,
       heading: "Как мы собирались в поездку",
       subheading: "Короткий смешной монтаж из домашних съёмок до отлёта. Хорошо встал бы перед началом китайской серии.",
+      description: "",
       tags: ["смешное", "вдвоём", "движение"], coverPath: null },
 
     { id: "p12", seriesId: null, format: "single", status: "idea", archived: false,
       publishedOn: null, targetOn: null, rank: null,
       heading: "Я и кофе в семь утра",
       subheading: "Просто хороший кадр без повода. Держу как разрядку между плотными сериями.",
+      description: "",
       tags: ["тихое", "я в кадре"], coverPath: null },
   ],
 
