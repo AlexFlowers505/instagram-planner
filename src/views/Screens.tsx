@@ -18,9 +18,18 @@ export function NoDatabase() {
   return (
     <Shell title="База не настроена">
       Нет <code className="text-ink">VITE_SUPABASE_URL</code> или{" "}
-      <code className="text-ink">VITE_SUPABASE_PUBLISHABLE_KEY</code>. Скопируй{" "}
-      <code className="text-ink">.env.example</code> в{" "}
-      <code className="text-ink">.env.development.local</code> и подставь свои значения.
+      <code className="text-ink">VITE_SUPABASE_PUBLISHABLE_KEY</code>. Подставь адрес
+      проекта и публикуемый ключ в{" "}
+      <code className="text-ink">
+        {import.meta.env.DEV ? ".env.development.local" : ".env.production"}
+      </code>{" "}
+      — образец рядом, в <code className="text-ink">.env.example</code>.
+      {!import.meta.env.DEV && (
+        <p className="mt-3">
+          Переменные вшиваются в сборку, а не читаются на ходу: после правки нужна
+          пересборка.
+        </p>
+      )}
       <p className="mt-3 text-ink/45">
         Запасного адреса нет намеренно: иначе одна забытая переменная уводила бы
         правки не туда.
