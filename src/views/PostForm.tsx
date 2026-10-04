@@ -328,23 +328,51 @@ export function PostForm({
                   id="series-name"
                   value={newName}
                   onChange={e => setNewName(e.target.value)}
-                  placeholder="Название серии"
+                  placeholder={newParent ? "Название сюжета" : "Название серии"}
                   className={FIELD}
                   autoFocus
                 />
-                {/* Сюжет — второй и последний уровень: «4 поста про Губэй»
-                    внутри «Китай. Пекин». Глубже не бывает, это держит
-                    триггер `series_two_levels()`. */}
-                <select
-                  value={newParent}
-                  onChange={e => setNewParent(e.target.value)}
-                  className={FIELD}
-                >
-                  <option value="">Новая серия верхнего уровня</option>
-                  {lookup.roots.map(root => (
-                    <option key={root.id} value={root.id}>Сюжет внутри «{root.name}»</option>
-                  ))}
-                </select>
+                {/* Что именно заводим, спрашивается вслух: раньше это пряталось
+                    первой строкой выпадающего списка, и выбор уровня читался
+                    как выбор родителя. Сюжет — второй и последний уровень:
+                    «4 поста про Губэй» внутри «Китай. Пекин». Глубже не
+                    бывает, это держит триггер `series_two_levels()`. */}
+                <div className="flex gap-1">
+                  <button
+                    type="button"
+                    onClick={() => setNewParent("")}
+                    aria-pressed={!newParent}
+                    className={CHOICE(!newParent)}
+                  >
+                    Серия
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setNewParent(newParent || lookup.roots[0]?.id || "")}
+                    aria-pressed={Boolean(newParent)}
+                    disabled={lookup.roots.length === 0}
+                    title={
+                      lookup.roots.length === 0
+                        ? "Сюжет живёт внутри серии — сначала нужна хотя бы одна"
+                        : undefined
+                    }
+                    className={`${CHOICE(Boolean(newParent))} disabled:opacity-40`}
+                  >
+                    Сюжет внутри серии
+                  </button>
+                </div>
+
+                {newParent && (
+                  <select
+                    value={newParent}
+                    onChange={e => setNewParent(e.target.value)}
+                    className={FIELD}
+                  >
+                    {lookup.roots.map(root => (
+                      <option key={root.id} value={root.id}>Внутри «{root.name}»</option>
+                    ))}
+                  </select>
+                )}
 
                 {!newParent && (
                   <>
@@ -379,7 +407,7 @@ export function PostForm({
 
                 {newParent && (
                   <p className="text-[11px] leading-snug text-ink/45">
-                    Цвет сюжет берёт у своей серии — он один на всю серию
+                    У сюжета нет ни цвета, ни вида: и то и другое одно на всю серию
                   </p>
                 )}
                 <button

@@ -25,7 +25,7 @@ type Props = {
   /** Подписанная ссылка на обложку. Нет — рисуется заглушка цветом серии. */
   cover?: string
   /** Что показывать в подписи сверх заголовка и даты. */
-  shows?: { subheading: boolean; description: boolean; tags: boolean }
+  shows?: { series: boolean; subheading: boolean; description: boolean; tags: boolean }
   /** Плитку можно нести — то есть она в очереди. */
   movable?: boolean
   elementRef?: (el: HTMLButtonElement | null) => void
@@ -144,6 +144,17 @@ export function Tile({
            поэтому рваные заголовки дали бы рваные строки. */
         <span className="grid min-h-[3.1rem] content-start gap-px">
           <span className="line-clamp-2 text-[12.5px] leading-[1.32] text-ink">{post.heading}</span>
+
+          {/* Обычно серия на плитке — только цвет рейки: имя, повторённое под
+              каждой картинкой, и есть тот шум, из-за которого сетка перестаёт
+              читаться. Но когда разбираешь состав, его надо видеть — поэтому
+              переключателем, а не всегда. */}
+          {shows?.series && post.seriesId && (
+            <span className="flex items-baseline gap-1 truncate text-[10.5px] text-ink/70">
+              <i className="h-[6px] w-[6px] shrink-0 rounded-sm" style={{ background: color }} />
+              {series.pathOf(post.seriesId).join(" → ")}
+            </span>
+          )}
 
           {shows?.subheading && post.subheading && (
             <span className="line-clamp-2 text-[11px] leading-[1.3] text-ink/70">

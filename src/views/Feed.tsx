@@ -20,7 +20,11 @@ const DENSITIES: Array<{ id: Density; icon: typeof Type; title: string }> = [
 ]
 
 /** Три независимых слоя подписи: состав, замысел и разметка — разные вопросы. */
-const CAPTION_PARTS: Array<{ id: "subheading" | "description" | "tags"; label: string }> = [
+const CAPTION_PARTS: Array<{
+  id: "series" | "subheading" | "description" | "tags"
+  label: string
+}> = [
+  { id: "series", label: "серия" },
   { id: "subheading", label: "подзаголовок" },
   { id: "description", label: "описание" },
   { id: "tags", label: "метки" },
@@ -48,7 +52,12 @@ export function Feed({ board, today, onOpen, onMove, covers }: Props) {
   const [profileOrder, setProfileOrder] = useState(true)
   // Подзаголовок, описание и метки — три разных вопроса к одной сетке,
   // поэтому три отдельных переключателя, а не один «подробнее».
-  const [shows, setShows] = useState({ subheading: false, description: false, tags: false })
+  const [shows, setShows] = useState({
+    series: false,
+    subheading: false,
+    description: false,
+    tags: false,
+  })
 
   const series = seriesLookup(board)
   const posts = boardPosts(board)
