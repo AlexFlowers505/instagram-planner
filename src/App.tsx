@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react"
 import { useCloudAuth, signOut } from "./data/auth"
 import { loadBoard } from "./data/load"
+import { type WriteOp, opUpsert } from "./data/ops"
 import { type QueueStatus, type SaveQueue, createSaveQueue } from "./data/queue"
 import { CLOUD_ENABLED, PROJECT_REF } from "./data/supabase"
 import { DEMO_BOARD, DEMO_TODAY } from "./data/demoBoard"
@@ -8,6 +9,7 @@ import { todayKey } from "./lib/date"
 import { type Board, EMPTY_BOARD } from "./types/model"
 import { AuthScreen } from "./views/AuthScreen"
 import { Feed } from "./views/Feed"
+import { type Created, PostForm } from "./views/PostForm"
 import { LoadFailed, NoDatabase, SaveFailedBanner, SetPassword } from "./views/Screens"
 import { SelfCheckPanel } from "./views/SelfCheckPanel"
 
@@ -34,11 +36,45 @@ type LoadState =
  */
 const DEMO = import.meta.env.DEV && new URLSearchParams(location.search).has("demo")
 
+/**
+ * Песочница на образце данных: всё работает, но живёт только в памяти.
+ * Добавленное здесь исчезает при перезагрузке, и это правильно — иначе образец
+ * перестал бы быть образцом.
+ */
+function DemoApp() {
+  const [board, setBoard] = useState<Board>(DEMO_BOARD)
+  const [adding, setAdding] = useState(false)
+
+  return (
+    <div className="mx-auto max-w-[880px] px-4 py-6">
+      <p className="mb-4 text-[11.5px] text-ink/45">
+        Образец данных — настоящая доска не читается и не пишется
+      </p>
+      <Feed board={board} today={DEMO_TODAY} onOpen={() => {}} onAdd={() => setAdding(true)} />
+      {adding && (
+        <PostForm
+          board={board}
+          onCancel={() => setAdding(false)}
+          onCreate={({ post, series }) => {
+            setBoard(b => ({
+              ...b,
+              series: series ? [...b.series, series] : b.series,
+              posts: [...b.posts, post],
+            }))
+            setAdding(false)
+          }}
+        />
+      )}
+    </div>
+  )
+}
+
 export default function App() {
   const { ready, session, recovery, clearRecovery } = useCloudAuth()
   const [load, setLoad] = useState<LoadState>({ kind: "idle" })
   const [saveStatus, setSaveStatus] = useState<QueueStatus>("idle")
   const [reloadAt, setReloadAt] = useState(0)
+  const [adding, setAdding] = useState(false)
 
   /**
    * Ключ — **идентификатор пользователя, а не объект сессии**. GoTrue выдаёт
@@ -85,16 +121,33 @@ export default function App() {
     return () => { alive = false }
   }, [userId, reloadAt])
 
-  if (DEMO) {
-    return (
-      <div className="mx-auto max-w-[880px] px-4 py-6">
-        <p className="mb-4 text-[11.5px] text-ink/45">
-          Образец данных — настоящая доска не читается и не пишется
-        </p>
-        <Feed board={DEMO_BOARD} today={DEMO_TODAY} onOpen={() => {}} />
-      </div>
-    )
+  /** Единственный путь к записи: новое состояние плюс то, какие строки тронуты. */
+  function persist(next: Board, ...ops: WriteOp[]) {
+    if (!userId) return
+    setLoad({ kind: "ok", userId, board: next })
+    boardRef.current = next
+    queueRef.current?.push(...ops)
   }
+
+  function addPost({ post, series }: Created) {
+    // Серия уходит первой: пост на неё ссылается внешним ключом, а очередь
+    // применяет операции в том порядке, в каком они пришли.
+    const ops = series
+      ? [opUpsert("series", series.id), opUpsert("post", post.id)]
+      : [opUpsert("post", post.id)]
+
+    persist(
+      {
+        ...board,
+        series: series ? [...board.series, series] : board.series,
+        posts: [...board.posts, post],
+      },
+      ...ops,
+    )
+    setAdding(false)
+  }
+
+  if (DEMO) return <DemoApp />
 
   if (!CLOUD_ENABLED) return <NoDatabase />
   if (!ready) return null
@@ -128,14 +181,12 @@ export default function App() {
 
       {loading ? (
         <p className="mt-8 text-[13px] text-ink/70">Читаю доску…</p>
-      ) : board.posts.length === 0 ? (
-        <p className="mt-8 max-w-[52ch] text-[13px] text-ink/70">
-          Доска пустая. Добавления постов ещё нет — оно следующим шагом. Чтобы
-          посмотреть, как сетка выглядит с содержимым, открой{" "}
-          <code className="text-ink">?demo=1</code>.
-        </p>
       ) : (
-        <Feed board={board} today={todayKey()} onOpen={() => {}} />
+        <Feed board={board} today={todayKey()} onOpen={() => {}} onAdd={() => setAdding(true)} />
+      )}
+
+      {adding && (
+        <PostForm board={board} onCancel={() => setAdding(false)} onCreate={addPost} />
       )}
 
       {import.meta.env.DEV && PROJECT_REF && (

@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { ArrowUpDown, Grid2x2, LayoutGrid, Type } from "lucide-react"
+import { ArrowUpDown, Grid2x2, LayoutGrid, Plus, Type } from "lucide-react"
 import type { Board } from "../types/model"
 import { seriesLookup } from "../lib/series"
 import { boardPosts, clashesOf, feedOrder, ideas, queue, rhythm } from "../lib/feed"
@@ -24,7 +24,16 @@ const GAP: Record<Density, string> = {
   flush: "gap-[2px]",
 }
 
-export function Feed({ board, today, onOpen }: { board: Board; today: string; onOpen: (id: string) => void }) {
+type Props = {
+  board: Board
+  today: string
+  onOpen: (id: string) => void
+  /** Отсутствует там, где писать нельзя — например в образце данных.
+      Кнопка тогда не отключена, а её нет: так не нужно объяснять отказ. */
+  onAdd?: () => void
+}
+
+export function Feed({ board, today, onOpen, onAdd }: Props) {
   const [density, setDensity] = useState<Density>("captions")
   const [profileOrder, setProfileOrder] = useState(true)
 
@@ -55,6 +64,18 @@ export function Feed({ board, today, onOpen }: { board: Board; today: string; on
         )}
 
         <span className="flex-1" />
+
+        {onAdd && (
+          <button
+            type="button"
+            onClick={onAdd}
+            title="Добавить пост"
+            className="flex items-center gap-1.5 rounded-lg bg-ink px-2.5 py-1.5 text-[12px] font-semibold text-on-fill"
+          >
+            <Plus size={14} strokeWidth={2.2} />
+            Пост
+          </button>
+        )}
 
         <button
           type="button"
@@ -87,6 +108,14 @@ export function Feed({ board, today, onOpen }: { board: Board; today: string; on
           })}
         </div>
       </div>
+
+      {posts.length === 0 && (
+        <p className="max-w-[52ch] text-[13px] text-ink/70">
+          Доска пустая. Добавь первый пост — или открой{" "}
+          <code className="text-ink">?demo=1</code>, чтобы посмотреть, как сетка
+          выглядит с содержимым.
+        </p>
+      )}
 
       <div className={`grid max-w-[720px] grid-cols-3 ${GAP[density]}`}>
         {sequence.map((post, i) => (
